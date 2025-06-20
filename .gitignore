@@ -1,0 +1,22 @@
+# Bytecode and virtualenv
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+venv/
+.env
+
+# IDEs and editors
+.vscode/
+.idea/
+
+# DB and local data
+*.db
+*.sqlite3
+memory_data.db
+
+# Python packaging artifacts
+*.egg-info/
+dist/
+build/
