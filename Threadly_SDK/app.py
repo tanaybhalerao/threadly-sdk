@@ -66,7 +66,6 @@ def handle_message():
         .limit(10)
         .all()
     )
-    session.close()
 
     threads = defaultdict(list)
     for m in resolved_history:
@@ -90,7 +89,6 @@ def handle_message():
 
     summary_data = summarize_memories(past_memories, user_id, mode=mode)
 
-    session = SessionLocal()
     profile = session.query(UserProfile).filter_by(user_id=user_id).first()
 
     topic_counts = (
@@ -105,10 +103,16 @@ def handle_message():
     behavior_insight = ""
     if profile and topic_counts:
         top_topic, top_count = max(topic_counts, key=lambda x: x[1])
-        behavior_insight = (
-            f"You're most often reflecting on **{top_topic}**, "
-            f"and your dominant emotion has been **{profile.dominant_emotion}**."
-        )
+        if top_count >= 3:
+            behavior_insight = (
+                f"Your reflections often return to **{top_topic}**, especially in recent sessions. "
+                f"Overall, your tone has leaned **{profile.dominant_emotion}**, with a steady presence of this theme across threads."
+            )
+        else:
+            behavior_insight = (
+                f"You're exploring a variety of topics right now. "
+                f"Emotionally, your reflections feel mostly **{profile.dominant_emotion}**, with no single dominant pattern yet."
+            )
 
     session.close()
 
@@ -129,7 +133,6 @@ def handle_message():
         "momentum": summary_data["momentum"],
         "change": summary_data["change"],
         "consider_next": summary_data["consider_next"],
-        "reference_past_issue": reference_past_issue,
         "goal_label": goal_label,
         "mode": mode,
         "user_profile": user_profile,

@@ -1,9 +1,8 @@
 import streamlit as st
 import requests
-import pandas as pd
-from collections import Counter
+from collections import defaultdict
+from datetime import datetime
 from Threadly_SDK.demo.config import BASE_URL, USER_ID, HEADERS
-
 
 # ---------------------------
 # PAGE CONFIG
@@ -47,6 +46,15 @@ st.markdown(
         background-color: #444 !important;
         color: #fff !important;
         border: none;
+        padding: 0.6rem 1.2rem;
+        border-radius: 6px;
+        font-size: 16px;
+        margin-top: 0.5rem;
+        transition: background-color 0.3s ease;
+    }
+
+    .stButton > button:hover {
+        background-color: #666 !important;
     }
 
     .stMarkdown, .stTextInput, .stTextArea {
@@ -55,6 +63,19 @@ st.markdown(
 
     .st-bd {
         background-color: #2a2927 !important;
+    }
+
+    .entry-header {
+        font-weight: 600;
+        font-size: 15px;
+        margin-top: 16px;
+        margin-bottom: 4px;
+        color: #f0e9d6;
+    }
+
+    .timestamp {
+        font-size: 12px;
+        color: #999;
     }
     </style>
     """,
@@ -95,7 +116,6 @@ with st.sidebar:
 # MAIN LAYOUT
 # ---------------------------
 st.title("Thread-ly: Reflective Journal")
-
 left, right = st.columns([1, 1])
 
 # ---------------------------
@@ -106,8 +126,18 @@ with left:
 
     with st.container(border=True):
         if st.session_state.chat_history:
-            for msg in reversed(st.session_state.chat_history):
-                st.markdown(f"<div style='padding: 6px 0;'>{msg['content']}</div>", unsafe_allow_html=True)
+            grouped = defaultdict(list)
+            for msg in st.session_state.chat_history:
+                grouped[msg.get("thread_id", "unknown")].append(msg)
+
+            for tid, messages in reversed(list(grouped.items())):
+                st.markdown(f"<div class='entry-header'>Thread {tid}</div>", unsafe_allow_html=True)
+                for msg in messages:
+                    time = msg.get("timestamp", "")
+                    content = msg["content"]
+                    st.markdown(f"<div style='padding-left: 10px;'>{content}</div>", unsafe_allow_html=True)
+                    if time:
+                        st.markdown(f"<div class='timestamp' style='padding-left: 10px;'>{time}</div>", unsafe_allow_html=True)
         else:
             st.write("No entries yet. Start by reflecting on something.")
 
@@ -119,7 +149,13 @@ with left:
         submit = st.form_submit_button("Save Reflection")
 
         if submit and user_msg.strip():
-            st.session_state.chat_history.append({"role": "user", "content": user_msg})
+            now = datetime.now().strftime("%b %d, %Y %I:%M %p")
+            st.session_state.chat_history.append({
+                "role": "user",
+                "content": user_msg,
+                "timestamp": now,
+                "thread_id": "pending"
+            })
             payload = {
                 "user_id": USER_ID,
                 "message": user_msg,
@@ -131,11 +167,19 @@ with left:
             res = requests.post(f"{BASE_URL}/message", json=payload, headers=HEADERS)
 
             if res.ok:
-                st.session_state.last_response = res.json()
+                try:
+                    data = res.json()
+                    st.session_state.last_response = data
+                    thread_id = data.get("context", {}).get("thread_id")
+                    st.session_state.chat_history[-1]["thread_id"] = thread_id
+                except Exception:
+                    st.error("Response could not be parsed.")
+                    st.text(res.text)
                 st.session_state.last_message = user_msg
                 st.rerun()
             else:
                 st.error("Couldn’t connect to backend.")
+                st.text(res.text)
 
 # ---------------------------
 # RIGHT: REFLECTION SUMMARY
@@ -143,9 +187,14 @@ with left:
 with right:
     st.subheader("Current Reflection Overview")
 
-    if st.session_state.last_response:
+    context = {}
+    if isinstance(st.session_state.last_response, dict):
         context = st.session_state.last_response.get("context", {})
+    else:
+        st.warning("Unexpected response format:")
+        st.text(st.session_state.last_response)
 
+    if context:
         def render_section(title, value):
             st.markdown(f"**{title}**")
             st.markdown(f"<div style='margin-bottom: 16px; padding-left: 10px;'>{value or 'N/A'}</div>", unsafe_allow_html=True)
@@ -167,7 +216,6 @@ with right:
         st.markdown("**Session Context**")
         st.markdown(f"`Thread ID:` `{context.get('thread_id', 'N/A')}`")
         st.markdown(f"`Goal:` `{context.get('goal_label', 'N/A')}`")
-        st.markdown(f"`References Past Issue:` `{context.get('reference_past_issue', False)}`")
         st.markdown(f"`Mode:` `{context.get('mode', 'neutral')}`")
 
         if st.session_state.debug:
@@ -180,8 +228,7 @@ with right:
 st.divider()
 st.subheader("Topics You've Reflected On")
 
-topics = st.session_state.last_response.get("context", {}).get("topic_list", [])
-
+topics = context.get("topic_list", [])
 if topics:
     st.markdown(", ".join(f"`{t}`" for t in topics))
 else:
