@@ -30,7 +30,7 @@ print(summary)
 
 ## Features
 
-- 🧠 Thread-aware memory ingestion
-- ❤️ Emotion and nuance classification
-- 📝 Summarization with reflection prompts
-- 🎯 Goal-labeling and journaling modes
+- Thread-aware memory ingestion
+- Emotion and nuance classification
+- Summarization with reflection prompts
+- Goal-labeling and journaling modes
