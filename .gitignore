@@ -23,7 +23,6 @@ build/
 
 # Ignore old code or junk folders
 _deprecated/
-Threadly_SDK/
 thread-ly-site/
 *.DS_Store
 *.db
@@ -34,8 +33,6 @@ thread-ly-site/
 test_*.py
 clear_*.py
 demo_app.py
-app.py
-ui.py
 utils.py
 view_memories.py
 thread_signature_manager.py
