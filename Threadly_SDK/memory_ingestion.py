@@ -49,7 +49,8 @@ def ingest_message(
     tags=None,
     importance_score=0.5,
     debug=False,
-    goal_label=None
+    goal_label=None,
+    demo_mode=False
 ):
     if not message_text:
         return "", False, False, {"skipped": True, "reason": "Empty message"}
@@ -100,6 +101,8 @@ def ingest_message(
         .count() == 0
     )
 
+    final_tags = (tags or []) + (["demo"] if demo_mode else [])
+
     memory = MemoryEvent(
         user_id=user_id,
         message_text=message_text,
@@ -110,7 +113,7 @@ def ingest_message(
         subtopics=",".join(subtopics),
         thread_id=thread_id,
         resolved=False,
-        tags=",".join(tags) if tags else "",
+        tags=",".join(final_tags),
         importance_score=importance_score,
         message_hash=msg_hash,
         role="user",
@@ -128,7 +131,7 @@ def ingest_message(
         "topic_nuance": topic_nuance,
         "subtopics": subtopics,
         "reference_past_issue": reference_past_issue,
-        "tags": tags or [],
+        "tags": final_tags,
         "emotion": dominant_emotion,
         "goal_label": goal_label if is_first_message else ""
     })
@@ -137,7 +140,9 @@ def ingest_message(
     if is_first_message:
         add_thread_signature(thread_id, user_id, message_text)
 
-    update_user_profile(user_id, topic, dominant_emotion)
+    if not demo_mode:
+        update_user_profile(user_id, topic, dominant_emotion)
+
     summarize_thread_and_update(thread_id, user_id)
 
     debug_meta = {

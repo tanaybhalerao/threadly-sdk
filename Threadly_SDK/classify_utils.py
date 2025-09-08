@@ -26,7 +26,6 @@ Respond in JSON with a single field:
         print(f"[⚠️ Sentiment Error] {e}")
         return "neutral"
 
-
 def classify_topic(message_text, past_topic_nuances=None):
     past_summary = ""
     if past_topic_nuances:

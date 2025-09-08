@@ -1,0 +1,8 @@
+streamlit
+openai
+faiss-cpu
+numpy
+sqlalchemy
+python-dotenv
+tenacity
+requests

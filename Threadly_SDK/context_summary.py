@@ -7,19 +7,8 @@ from openai import OpenAI
 load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-def build_context_summary(memory_summary, user_message, mode="neutral"):
-    if mode == "goal-tracking":
-        prompt_header = """
-You are a reflection assistant in a journaling app. The user is tracking a goal over time.
-
-Speak directly to the user. Reflect what they’re expressing using small breadcrumbs across entries — not just the current message. Don’t describe “the user.” Don’t try to diagnose. Stay observational and clear.
-
-If you offer a reflection_tip, it should gently nudge the user forward or spark introspection — not teach or motivate. You may use a Conviction Framework™ prompt only if it naturally fits the shift you observe.
-
-Avoid assumptions. Keep it honest and dry. Don’t repeat what they already know.
-"""
-    else:
-        prompt_header = """
+def build_context_summary(memory_summary, user_message):
+    prompt_header = """
 You are a journaling memory engine.
 
 Your job is to quietly track whether this new message builds on a past direction or not. Do not rely only on the latest message — look for breadcrumbs from the past.
@@ -72,40 +61,8 @@ Field guidelines:
             "confidence": 0.5
         }
 
-def build_summary_prompt(memories, user_id, mode="neutral"):
-    if mode == "goal-tracking":
-        return f"""
-You are a journaling assistant. Help the user reflect on their goal by summarizing *what they wrote*, not what you think they meant.
-
-Speak directly to them. Don’t describe them. Be minimal and observant.
-
-If entries are related by cause, timing, or theme (e.g. sleep issues followed by caffeine changes), connect them naturally. Don’t force links, but don’t ignore obvious sequences.
-
-Use this format:
-
-THEME:
-REFLECTION:
-MOMENTUM:
-CHANGE:
-CONSIDER NEXT: Optionally include one Conviction Framework™ prompt if relevant.
-
-Conviction Framework™ prompts:
-- “Who is the version of you that already lives this goal?”
-- “If the universe gave you a simulated version of your goal—would you still want it?”
-- “What can your present self do to outsmart your future self?”
-- “How will your 80-year-old self thank you—or regret this moment?”
-- “If this resistance had something to teach you, what would it be?”
-- “If a camera were watching—how would you act differently?”
-- “What’s the comfortable lie you tell yourself—and what’s the courageous truth?”
-- “What’s the cleverest way to make this effortless?”
-- “If you don’t act now, what will the cost be—to others?”
-- “Why does this goal matter in the grand scheme of your life?”
-
-Journal entries:
-{chr(10).join(memories)}
-"""
-    else:
-        return f"""
+def build_summary_prompt(memories, user_id):
+    return f"""
 You are a quiet summarizer for journaling entries. Your tone is dry, non-interpretive, and direct.
 
 Speak directly to the user. Reflect only what’s repeated, shifting, or clearly stated.
