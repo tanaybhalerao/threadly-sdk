@@ -7,6 +7,12 @@ from Threadly_SDK.db_setup import SessionLocal
 from Threadly_SDK.models import MemoryEvent
 from Threadly_SDK.summarizer import summarize_memories
 
+from Threadly_SDK.embedding_utils import init_faiss, print_vector_count
+init_faiss()
+print_vector_count()
+
+
+
 # ---------------------------
 # SESSION STATE INIT
 # ---------------------------
