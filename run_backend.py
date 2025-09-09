@@ -1,6 +1,8 @@
-import sys
-import runpy
+# run_backend.py
 
-# Run app.py as a module so relative imports work
-sys.path.insert(0, "./")
-runpy.run_module("Threadly_SDK.app", run_name="__main__")
+from Threadly_SDK.app import app
+import os
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5050))
+    app.run(host="0.0.0.0", port=port, debug=True)
