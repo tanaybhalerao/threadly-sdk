@@ -3,6 +3,8 @@ from collections import defaultdict
 from datetime import datetime
 from uuid import uuid4
 import requests
+import os
+os.environ["WATCHFILES_DISABLE_GLOBAL_WATCHER"] = "true"
 
 # ---------------------------
 # CONFIG
