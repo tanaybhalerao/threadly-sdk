@@ -1,8 +1,13 @@
 import streamlit as st
-import requests
 from collections import defaultdict
 from datetime import datetime
 from uuid import uuid4
+import requests
+
+# ---------------------------
+# CONFIG
+# ---------------------------
+BACKEND_URL = "https://threadly-backend-sqvr.onrender.com/message"
 
 # ---------------------------
 # SESSION STATE INIT
@@ -87,23 +92,27 @@ with left:
 
                 with st.spinner("Processing your reflection..."):
                     try:
-                        response = requests.post("http://localhost:5050/message", json={
+                        response = requests.post(BACKEND_URL, json={
                             "user_id": st.session_state.user_id,
-                            "message": user_msg,
-                            "debug_mode": st.session_state.debug,
-                            "demo_mode": True
+                            "message_text": user_msg,
+                            "tags": ["demo"],
+                            "goal_label": "",
+                            "importance_score": 0.5,
+                            "debug": st.session_state.debug
                         })
-                        result = response.json()
-                        context = result.get("context", {})
 
-                        thread_id = context.get("thread_id", "unknown")
-                        st.session_state.chat_history[-1]["thread_id"] = thread_id
-
-                        st.session_state.last_response = {"context": context}
-                        st.session_state.last_message = user_msg
-                        st.rerun()
+                        if response.status_code == 200:
+                            data = response.json()
+                            thread_id = data.get("context", {}).get("thread_id", "unknown")
+                            st.session_state.chat_history[-1]["thread_id"] = thread_id
+                            st.session_state.last_response = data
+                        else:
+                            st.error("Backend error. Please try again later.")
                     except Exception as e:
-                        st.error(f"Error: {str(e)}")
+                        st.error(f"Request failed: {e}")
+
+                st.session_state.last_message = user_msg
+                st.rerun()
 
 # ---------------------------
 # RIGHT: SUMMARY
