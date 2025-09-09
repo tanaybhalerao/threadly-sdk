@@ -15,7 +15,7 @@ def call_gpt_summary(prompt):
     )
     return response.choices[0].message.content.strip()
 
-def summarize_memories(memory_list, user_id):
+def summarize_memories(memory_list, user_id, mode = "neutral"):
     if not memory_list:
         return {
             "theme": "No theme detected yet.",
