@@ -1,10 +1,11 @@
+import os
+os.environ["WATCHFILES_DISABLE_GLOBAL_WATCHER"] = "true"
+
 import streamlit as st
 from collections import defaultdict
 from datetime import datetime
 from uuid import uuid4
 import requests
-import os
-os.environ["WATCHFILES_DISABLE_GLOBAL_WATCHER"] = "true"
 
 # ---------------------------
 # CONFIG
@@ -96,18 +97,20 @@ with left:
                     try:
                         response = requests.post(BACKEND_URL, json={
                             "user_id": st.session_state.user_id,
-                            "message_text": user_msg,
+                            "message": user_msg,
                             "tags": ["demo"],
+                            "debug_mode": st.session_state.debug,
+                            "demo_mode": True,
                             "goal_label": "",
-                            "importance_score": 0.5,
-                            "debug": st.session_state.debug
+                            "importance_score": 0.5
                         })
 
                         if response.status_code == 200:
                             data = response.json()
-                            thread_id = data.get("context", {}).get("thread_id", "unknown")
+                            context = data.get("context", {})
+                            thread_id = context.get("thread_id", "unknown")
                             st.session_state.chat_history[-1]["thread_id"] = thread_id
-                            st.session_state.last_response = data
+                            st.session_state.last_response = context
                         else:
                             st.error("Backend error. Please try again later.")
                     except Exception as e:
@@ -121,7 +124,7 @@ with left:
 # ---------------------------
 with right:
     st.subheader("Current Reflection Overview")
-    context = st.session_state.last_response.get("context", {})
+    context = st.session_state.last_response or {}
 
     def render_section(title, value):
         st.markdown(f"**{title}**")
