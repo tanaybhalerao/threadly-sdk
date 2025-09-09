@@ -6,12 +6,10 @@ from Threadly_SDK.memory_ingestion import ingest_message
 from Threadly_SDK.db_setup import SessionLocal
 from Threadly_SDK.models import MemoryEvent
 from Threadly_SDK.summarizer import summarize_memories
-
 from Threadly_SDK.embedding_utils import init_faiss, print_vector_count
+
 init_faiss()
 print_vector_count()
-
-
 
 # ---------------------------
 # SESSION STATE INIT
@@ -108,7 +106,7 @@ with left:
                     )
                     st.session_state.chat_history[-1]["thread_id"] = thread_id
 
-                    # Collect relevant thread + fallback memory for summary
+                    # ✅ FIXED: Use actual DB entries instead of chat_history
                     session = SessionLocal()
                     entries = (
                         session.query(MemoryEvent)
@@ -116,7 +114,7 @@ with left:
                         .order_by(MemoryEvent.timestamp.asc())
                         .all()
                     )
-                    messages = [msg["content"] for msg in st.session_state.chat_history]
+                    messages = [e.message_text for e in entries if e.message_text]
                     summary = summarize_memories(messages, st.session_state.user_id, mode=st.session_state.mode.lower())
                     session.close()
 
