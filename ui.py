@@ -78,8 +78,8 @@ with left:
 
     st.divider()
     st.subheader("Add Reflection")
-    if len(st.session_state.chat_history) >= 3:
-        st.warning("You've reached the 3-entry demo limit. Click 'Start Over' to reset.")
+    if len(st.session_state.chat_history) >= 5:
+        st.warning("You've reached the 5-entry demo limit. Click 'Start Over' to reset.")
     else:
         with st.form("journal_form"):
             user_msg = st.text_area("What’s on your mind today?", key="journal_input", height=120)
