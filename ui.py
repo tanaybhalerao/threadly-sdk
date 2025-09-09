@@ -1,15 +1,8 @@
 import streamlit as st
+import requests
 from collections import defaultdict
 from datetime import datetime
 from uuid import uuid4
-from Threadly_SDK.memory_ingestion import ingest_message
-from Threadly_SDK.db_setup import SessionLocal
-from Threadly_SDK.models import MemoryEvent
-from Threadly_SDK.summarizer import summarize_memories
-from Threadly_SDK.embedding_utils import init_faiss, print_vector_count
-
-init_faiss()
-print_vector_count()
 
 # ---------------------------
 # SESSION STATE INIT
@@ -20,8 +13,6 @@ if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 if "debug" not in st.session_state:
     st.session_state.debug = False
-if "mode" not in st.session_state:
-    st.session_state.mode = "Neutral"
 if "last_response" not in st.session_state:
     st.session_state.last_response = {}
 if "last_message" not in st.session_state:
@@ -41,7 +32,6 @@ st.set_page_config(
 # ---------------------------
 with st.sidebar:
     st.title("Settings")
-    st.session_state.mode = st.selectbox("Mode", ["Neutral", "Goal-Tracking"], index=0)
     st.session_state.debug = st.toggle("Debug Mode", value=st.session_state.debug)
     st.markdown("---")
     st.markdown(f"**Session ID:** `{st.session_state.user_id}`")
@@ -96,44 +86,24 @@ with left:
                 })
 
                 with st.spinner("Processing your reflection..."):
-                    thread_id, _, _, debug_meta = ingest_message(
-                        user_id=st.session_state.user_id,
-                        message_text=user_msg,
-                        tags=["demo"],
-                        debug=st.session_state.debug,
-                        goal_label="",
-                        importance_score=0.5
-                    )
-                    st.session_state.chat_history[-1]["thread_id"] = thread_id
+                    try:
+                        response = requests.post("http://localhost:5050/message", json={
+                            "user_id": st.session_state.user_id,
+                            "message": user_msg,
+                            "debug_mode": st.session_state.debug,
+                            "demo_mode": True
+                        })
+                        result = response.json()
+                        context = result.get("context", {})
 
-                    # Collect relevant thread + fallback memory for summary
-                    session = SessionLocal()
-                    entries = (
-                        session.query(MemoryEvent)
-                        .filter_by(user_id=st.session_state.user_id, thread_id=thread_id)
-                        .order_by(MemoryEvent.timestamp.asc())
-                        .all()
-                    )
-                    session.close()
+                        thread_id = context.get("thread_id", "unknown")
+                        st.session_state.chat_history[-1]["thread_id"] = thread_id
 
-                    messages = [msg.get("content", "").strip() for msg in st.session_state.chat_history if msg.get("content", "").strip()]
-                    user_id = st.session_state.get("user_id", "anonymous")
-                    mode = st.session_state.get("mode", "Neutral").lower()
-
-                    summary = summarize_memories(messages, user_id=user_id, mode=mode)
-
-                    st.session_state.last_response = {
-                        "context": {
-                            **summary,
-                            "thread_id": thread_id,
-                            "mode": mode,
-                            "goal_label": "",
-                            "debug_log": debug_meta if st.session_state.debug else {}
-                        }
-                    }
-
-                st.session_state.last_message = user_msg
-                st.rerun()
+                        st.session_state.last_response = {"context": context}
+                        st.session_state.last_message = user_msg
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Error: {str(e)}")
 
 # ---------------------------
 # RIGHT: SUMMARY
@@ -155,7 +125,6 @@ with right:
     st.divider()
     st.markdown("**Session Context**")
     st.markdown(f"`Thread ID:` `{context.get('thread_id', 'N/A')}`")
-    st.markdown(f"`Mode:` `{context.get('mode', 'neutral')}`")
 
     if st.session_state.debug:
         debug = context.get("debug_log", {})
