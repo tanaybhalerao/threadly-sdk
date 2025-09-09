@@ -115,7 +115,9 @@ with left:
                         .all()
                     )
                     messages = [e.message_text for e in entries if e.message_text]
-                    summary = summarize_memories(messages, st.session_state.user_id, mode=st.session_state.mode.lower())
+                    mode = st.session_state.get("mode", "Neutral")
+                    summary = summarize_memories(messages, st.session_state.user_id, mode=mode.lower())
+
                     session.close()
 
                     st.session_state.last_response = {
