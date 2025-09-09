@@ -194,6 +194,9 @@ def get_user_profile(user_id):
 def ping():
     return "Flask is alive on port 5050!"
 
+@app.route("/healthz")
+def health_check():
+    return "OK", 200
 
 if __name__ == "__main__":
     app.run(debug=True, port=5050)
