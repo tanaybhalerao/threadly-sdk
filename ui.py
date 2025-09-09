@@ -106,7 +106,7 @@ with left:
                     )
                     st.session_state.chat_history[-1]["thread_id"] = thread_id
 
-                    # ✅ FIXED: Use actual DB entries instead of chat_history
+                    # Collect relevant thread + fallback memory for summary
                     session = SessionLocal()
                     entries = (
                         session.query(MemoryEvent)
@@ -114,17 +114,19 @@ with left:
                         .order_by(MemoryEvent.timestamp.asc())
                         .all()
                     )
-                    messages = [e.message_text for e in entries if e.message_text]
-                    mode = st.session_state.get("mode", "Neutral")
-                    summary = summarize_memories(messages, st.session_state.user_id, mode=mode.lower())
-
                     session.close()
+
+                    messages = [msg.get("content", "").strip() for msg in st.session_state.chat_history if msg.get("content", "").strip()]
+                    user_id = st.session_state.get("user_id", "anonymous")
+                    mode = st.session_state.get("mode", "Neutral").lower()
+
+                    summary = summarize_memories(messages, user_id=user_id, mode=mode)
 
                     st.session_state.last_response = {
                         "context": {
                             **summary,
                             "thread_id": thread_id,
-                            "mode": st.session_state.mode.lower(),
+                            "mode": mode,
                             "goal_label": "",
                             "debug_log": debug_meta if st.session_state.debug else {}
                         }
