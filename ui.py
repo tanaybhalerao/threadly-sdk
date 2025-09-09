@@ -116,7 +116,7 @@ with left:
                         .order_by(MemoryEvent.timestamp.asc())
                         .all()
                     )
-                    messages = [e.message_text for e in entries if e.message_text]
+                    messages = [msg["content"] for msg in st.session_state.chat_history]
                     summary = summarize_memories(messages, st.session_state.user_id, mode=st.session_state.mode.lower())
                     session.close()
 
