@@ -54,10 +54,10 @@ def get_countdown_text(remaining):
     Roast-style countdown text for entries 1–4.
     """
     roast_map = {
-        4: "I know… we’re slow. Look, it takes time for half-baked genius to warm up.",
-        3: "We’re just trying things out here. Some will stick, the rest get dumped into the 'free features' bin.",
+        4: "I know… it's slow. Look, it takes time for a half-baked product to warm up.",
+        3: "I'm just trying things out here. Some will stick, the rest get dumped into the 'free features' bin.",
         2: "You seriously think Thread-ly can recommend a product worth buying? Bold of you to assume.",
-        1: "One last reflection before we finally cough up our so-called product wisdom. Brace for disappointment."
+        1: "One last reflection before I impart some product wisdom. Brace for disappointment."
     }
     return roast_map.get(remaining, "")
 

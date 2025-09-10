@@ -120,7 +120,7 @@ with right:
     st.subheader("Reflection Overview")
     context = st.session_state.last_response or {}
 
-    # Two-column layout for summary + wild card
+    # Two-column layout for summary + product reco
     col1, col2 = st.columns(2)
 
     with col1:
@@ -142,7 +142,7 @@ with right:
             st.markdown("**Consider Next**")
             st.markdown(f"> {context['consider_next']}")
         if context.get("wild_card"):
-            st.markdown("**🎁 Wild Card**")
+            st.markdown("**Questionable Product Recommendation**")
             with st.container(border=True):
                 st.markdown(f"*{context['wild_card']}*")
 
