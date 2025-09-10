@@ -47,9 +47,19 @@ with st.sidebar:
         st.rerun()
 
 # ---------------------------
-# MAIN TITLE
+# MAIN TITLE + ROAST LINE
 # ---------------------------
 st.title("Thread-ly: Reflective Journal")
+
+# Always read last context so roast appears immediately under header
+header_context = st.session_state.last_response or {}
+roast_msg = header_context.get("roast_message")
+if roast_msg:
+    # lightweight, visible line without a header
+    st.markdown(
+        f"<div style='margin-top:-8px;margin-bottom:16px;font-size:14px;opacity:0.85;'>{roast_msg}</div>",
+        unsafe_allow_html=True
+    )
 
 left, right = st.columns([1, 1])
 
@@ -137,8 +147,9 @@ with right:
         render_block("Change", context.get("change"))
         render_block("Consider Next", context.get("consider_next"))
 
+        # Product recommendation / countdown lives here
         if context.get("wild_card"):
-            st.markdown("### Questionable Product Recommendation")
+            st.markdown("### Product Recommendation")
             with st.container(border=True):
                 st.write(context["wild_card"])
 

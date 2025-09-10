@@ -48,13 +48,23 @@ Only output the product suggestion, nothing else.
         return None
 
 def get_countdown_text(remaining):
-    roast_map = {
-        4: "I know… it’s slow. A product recommendation is 4 reflections away.",
-        3: "I’m just trying things out here. A recommendation will appear in 3 reflections.",
-        2: "You seriously think Thread-ly can recommend something worth buying? Bold. You’ll find out in 2 reflections.",
-        1: "One last reflection before I cough up some product wisdom. Recommendation in 1 reflection.",
+    simple_map = {
+        4: "4 messages until a product recommendation.",
+        3: "3 messages until a product recommendation.",
+        2: "2 messages until a product recommendation.",
+        1: "1 message until a product recommendation.",
     }
-    return roast_map.get(remaining, "")
+    return simple_map.get(remaining, "")
+
+def get_roast_message(entry_count):
+    roast_map = {
+        1: "We know… it’s slow. But notice how your messy thoughts are already bucketed into themes.",
+        2: "Still warming up. At least we can already summarize and hint at your momentum — faster than your notes app.",
+        3: "Getting closer. Try switching topics entirely — we’ll still stitch context together.",
+        4: "Now go back to your earlier theme. See how we carry continuity across separate threads?",
+        5: "Finally. After all this waiting, here comes our most questionable feature: a product recommendation. Don’t expect genius.",
+    }
+    return roast_map.get(entry_count, "")
 
 # ---------------------------
 # Routes
@@ -168,8 +178,10 @@ def handle_message():
 
     summary_data = summarize_memories(past_memories, user_id)
 
-    # 🧠 Wild Card logic (global counter)
+    # 🧠 Wild Card + Roast logic (global counter)
     wild_card = ""
+    roast_message = get_roast_message(user_entry_count)
+
     if user_entry_count >= 5:
         # Last 5 messages globally
         recent_events = (
@@ -240,7 +252,8 @@ def handle_message():
         "user_profile": user_profile,
         "topic_list": topic_freq,
         "behavioral_insight": behavioral_insight,
-        "wild_card": wild_card
+        "wild_card": wild_card,
+        "roast_message": roast_message
     }
 
     if debug_mode:
