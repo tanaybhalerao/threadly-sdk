@@ -158,6 +158,8 @@ with right:
         "selected_thread_score",
         "thread_continuation_reason",
         "thread_memory_hits",
+        "thread_entry_count",      # NEW
+        "countdown_remaining"      # NEW
     ]
     cleaned_debug = {k: v for k, v in debug.items() if k in keep_keys}
 

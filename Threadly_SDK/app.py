@@ -20,9 +20,6 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 # Wild Card Helpers
 # ---------------------------
 def generate_wild_card(messages, topic):
-    """
-    Generate a quirky product recommendation based on the last 5 messages + topic.
-    """
     prompt = f"""
 The user has been journaling. Here are their last 5 entries:
 
@@ -50,9 +47,6 @@ Respond with only the product recommendation sentence.
         return None
 
 def get_countdown_text(remaining):
-    """
-    Roast-style countdown text for entries 1–4.
-    """
     roast_map = {
         4: "I know… it's slow. Look, it takes time for a half-baked product to warm up.",
         3: "I'm just trying things out here. Some will stick, the rest get dumped into the 'free features' bin.",
@@ -165,16 +159,20 @@ def handle_message():
 
     summary_data = summarize_memories(past_memories, user_id)
 
-    # 🧠 Wild Card logic
+    # 🧠 Wild Card logic with logging
     thread_entry_count = len(thread_events)
+    debug_log["thread_entry_count"] = thread_entry_count
     wild_card = ""
     if thread_entry_count >= 5:
         last_five = [e.message_text for e in thread_events[-5:] if e.message_text]
         wild_card = generate_wild_card(last_five, classified_topic) or ""
+        print(f"🎁 Generating product recommendation (entries={thread_entry_count})")
     else:
         remaining = 5 - thread_entry_count
         if remaining > 0:
             wild_card = get_countdown_text(remaining)
+            debug_log["countdown_remaining"] = remaining
+            print(f"⏳ Countdown: {remaining} reflections left")
 
     # 🧠 Skip user profile for demo users
     if is_demo:
