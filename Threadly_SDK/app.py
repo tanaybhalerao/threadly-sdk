@@ -85,6 +85,14 @@ def handle_message():
 
     session = SessionLocal()
 
+    # 🔍 Count total reflections by this user (global, across all threads)
+    user_entry_count = (
+        session.query(func.count(MemoryEvent.id))
+        .filter_by(user_id=user_id)
+        .scalar()
+    )
+    debug_log["user_entry_count"] = user_entry_count
+
     # 🔍 Get all messages in this thread
     thread_events = []
     if message.strip():
@@ -159,20 +167,26 @@ def handle_message():
 
     summary_data = summarize_memories(past_memories, user_id)
 
-    # 🧠 Wild Card logic with logging
-    thread_entry_count = len(thread_events)
-    debug_log["thread_entry_count"] = thread_entry_count
+    # 🧠 Wild Card logic (global)
     wild_card = ""
-    if thread_entry_count >= 5:
-        last_five = [e.message_text for e in thread_events[-5:] if e.message_text]
+    if user_entry_count >= 5:
+        # Last 5 messages globally
+        recent_events = (
+            session.query(MemoryEvent)
+            .filter_by(user_id=user_id)
+            .order_by(MemoryEvent.timestamp.desc())
+            .limit(5)
+            .all()
+        )
+        last_five = [e.message_text for e in reversed(recent_events) if e.message_text]
         wild_card = generate_wild_card(last_five, classified_topic) or ""
-        print(f"🎁 Product recommendation triggered (entries={thread_entry_count})", flush=True)
+        print(f"🎁 Product recommendation triggered (global entries={user_entry_count})", flush=True)
     else:
-        remaining = 5 - thread_entry_count
+        remaining = 5 - user_entry_count
         if remaining > 0:
             wild_card = get_countdown_text(remaining)
             debug_log["countdown_remaining"] = remaining
-            print(f"⏳ Countdown: {remaining} reflections left (entries={thread_entry_count})", flush=True)
+            print(f"⏳ Countdown: {remaining} reflections left (global entries={user_entry_count})", flush=True)
 
     # 🧠 Skip user profile for demo users
     if is_demo:
