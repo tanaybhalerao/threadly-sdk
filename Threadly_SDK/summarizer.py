@@ -11,11 +11,11 @@ def call_gpt_summary(prompt):
     response = client.chat.completions.create(
         model="gpt-4-turbo",
         messages=[{"role": "system", "content": prompt}],
-        temperature=0.4,
+        temperature=0.5,  # slightly higher for richer detail
     )
     return response.choices[0].message.content.strip()
 
-def summarize_memories(memory_list, user_id, mode = "neutral"):
+def summarize_memories(memory_list, user_id, mode="neutral"):
     if not memory_list:
         return {
             "theme": "No theme detected yet.",
@@ -35,7 +35,13 @@ def summarize_memories(memory_list, user_id, mode = "neutral"):
         else:
             processed.append(f"{text}")
 
-    prompt = build_summary_prompt(processed, user_id)
+    # 🧠 Build a prompt that nudges for slightly more verbosity
+    prompt = build_summary_prompt(processed, user_id) + """
+
+Write each section in 1–2 sentences, adding helpful detail only when it exists.
+- Be clear and grounded, not flowery.
+- If little can be inferred, keep it brief and say that directly.
+- Provide enough to feel informative, but avoid repeating the same point."""
 
     try:
         raw = call_gpt_summary(prompt)

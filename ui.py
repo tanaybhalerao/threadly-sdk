@@ -120,31 +120,27 @@ with right:
     st.subheader("Reflection Overview")
     context = st.session_state.last_response or {}
 
+    def render_block(title, value):
+        if value:
+            st.markdown(f"### {title}")
+            st.write(value)
+
     # Two-column layout for summary + product reco
     col1, col2 = st.columns(2)
 
     with col1:
-        if context.get("theme"):
-            st.markdown("**Theme**")
-            st.markdown(f"> {context['theme']}")
-        if context.get("reflection_summary"):
-            st.markdown("**Reflection**")
-            st.markdown(f"> {context['reflection_summary']}")
-        if context.get("momentum"):
-            st.markdown("**Momentum**")
-            st.markdown(f"> {context['momentum']}")
+        render_block("Theme", context.get("theme"))
+        render_block("Reflection", context.get("reflection_summary"))
+        render_block("Momentum", context.get("momentum"))
 
     with col2:
-        if context.get("change"):
-            st.markdown("**Change**")
-            st.markdown(f"> {context['change']}")
-        if context.get("consider_next"):
-            st.markdown("**Consider Next**")
-            st.markdown(f"> {context['consider_next']}")
+        render_block("Change", context.get("change"))
+        render_block("Consider Next", context.get("consider_next"))
+
         if context.get("wild_card"):
-            st.markdown("**Questionable Product Recommendation**")
+            st.markdown("### Questionable Product Recommendation")
             with st.container(border=True):
-                st.markdown(f"*{context['wild_card']}*")
+                st.write(context["wild_card"])
 
     # ---------------------------
     # Technical details (compact at bottom)
@@ -158,8 +154,8 @@ with right:
         "selected_thread_score",
         "thread_continuation_reason",
         "thread_memory_hits",
-        "user_entry_count",       # NEW global counter
-        "countdown_remaining"     # NEW countdown tracker
+        "user_entry_count",
+        "countdown_remaining"
     ]
     cleaned_debug = {k: v for k, v in debug.items() if k in keep_keys}
 

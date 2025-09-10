@@ -27,19 +27,20 @@ The user has been journaling. Here are their last 5 entries:
 
 Topic focus: {topic}
 
-Give ONE quirky product recommendation (something real people might buy, not abstract).
-- Make it surprising but loosely relevant to the theme.
-- Keep it to 1 short sentence.
-- Avoid generic items like "a book" or "a mug".
-- Examples: resistance bands, sleep mask with built-in headphones, desktop punching bag.
+Recommend ONE real consumer product that the user could realistically purchase online or in a store.
+- Keep it practical and relevant to their theme.
+- Suggest well-known categories: fitness gear, home office gadgets, kitchen tools, wellness items, travel accessories, or books.
+- Avoid novelty, joke, or fantasy products.
+- Keep the output short and simple, just the product name.
 
-Respond with only the product recommendation sentence.
+Examples: "Adjustable dumbbells", "Noise-canceling headphones", "A standing desk mat", "A guided journal".
+Only output the product suggestion, nothing else.
 """
     try:
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[{"role": "system", "content": prompt}],
-            temperature=0.7,
+            temperature=0.6,
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
@@ -48,10 +49,10 @@ Respond with only the product recommendation sentence.
 
 def get_countdown_text(remaining):
     roast_map = {
-        4: "I know… it's slow. Look, it takes time for a half-baked product to warm up.",
-        3: "I'm just trying things out here. Some will stick, the rest get dumped into the 'free features' bin.",
-        2: "You seriously think Thread-ly can recommend a product worth buying? Bold of you to assume.",
-        1: "One last reflection before I impart some product wisdom. Brace for disappointment."
+        4: "I know… it’s slow. A product recommendation is 4 reflections away.",
+        3: "I’m just trying things out here. A recommendation will appear in 3 reflections.",
+        2: "You seriously think Thread-ly can recommend something worth buying? Bold. You’ll find out in 2 reflections.",
+        1: "One last reflection before I cough up some product wisdom. Recommendation in 1 reflection.",
     }
     return roast_map.get(remaining, "")
 
@@ -167,7 +168,7 @@ def handle_message():
 
     summary_data = summarize_memories(past_memories, user_id)
 
-    # 🧠 Wild Card logic (global)
+    # 🧠 Wild Card logic (global counter)
     wild_card = ""
     if user_entry_count >= 5:
         # Last 5 messages globally
