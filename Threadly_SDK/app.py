@@ -4,7 +4,7 @@ from .embedding_utils import init_faiss, search_memory, print_vector_count
 from .summarizer import summarize_memories
 from .db_setup import SessionLocal
 from .models import UserProfile, MemoryEvent
-from sqlalchemy import desc, func
+from sqlalchemy import func
 from collections import defaultdict
 from datetime import datetime, timedelta
 from openai import OpenAI
@@ -89,9 +89,10 @@ def handle_message():
     debug_log.update(debug_meta)
     classified_topic = debug_meta.get("classified_topic", "unknown")
 
-    # 🔍 Fetch memory for summarization
-    past_memories = []
     session = SessionLocal()
+
+    # 🔍 Get all messages in this thread
+    thread_events = []
     if message.strip():
         thread_events = (
             session.query(MemoryEvent)
@@ -99,8 +100,10 @@ def handle_message():
             .order_by(MemoryEvent.timestamp.asc())
             .all()
         )
-        past_memories = [e.message_text for e in thread_events if e.message_text]
-        debug_log["thread_memory_hits"] = len(past_memories)
+        debug_log["thread_memory_hits"] = len(thread_events)
+
+    # Collect text only for summarization
+    past_memories = [e.message_text for e in thread_events if e.message_text]
 
     # 🧠 Topic-matched fallback messages
     topic_matched_messages = []
@@ -163,13 +166,13 @@ def handle_message():
     summary_data = summarize_memories(past_memories, user_id)
 
     # 🧠 Wild Card logic
-    entry_count = len(past_memories)
+    thread_entry_count = len(thread_events)
     wild_card = ""
-    if entry_count >= 5:
-        last_five = past_memories[-5:]
+    if thread_entry_count >= 5:
+        last_five = [e.message_text for e in thread_events[-5:] if e.message_text]
         wild_card = generate_wild_card(last_five, classified_topic) or ""
     else:
-        remaining = 5 - entry_count
+        remaining = 5 - thread_entry_count
         if remaining > 0:
             wild_card = get_countdown_text(remaining)
 

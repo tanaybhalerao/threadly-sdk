@@ -146,18 +146,9 @@ with right:
             with st.container(border=True):
                 st.markdown(f"*{context['wild_card']}*")
 
-    st.divider()
-    st.markdown("**Session Context**")
-
-    # Goal label: show only if present
-    if context.get("goal_label"):
-        st.markdown(f"`Goal:` `{context.get('goal_label')}`")
-
-    # User profile if available
-    if context.get("user_profile"):
-        st.json(context.get("user_profile"))
-
+    # ---------------------------
     # Technical details (compact at bottom)
+    # ---------------------------
     debug = context.get("debug_log", {})
     keep_keys = [
         "classified_topic",
@@ -172,10 +163,5 @@ with right:
 
     if cleaned_debug:
         st.divider()
-        with st.expander("Technical Details (nerdy stuff)", expanded=False):
-            st.markdown(
-                "<div style='font-size: 12px;'>",
-                unsafe_allow_html=True
-            )
+        with st.expander("Technical Details", expanded=False):
             st.json(cleaned_debug)
-            st.markdown("</div>", unsafe_allow_html=True)
