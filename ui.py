@@ -50,12 +50,13 @@ with st.sidebar:
 # MAIN TITLE
 # ---------------------------
 st.title("Thread-ly: Reflective Journal")
-tab1, tab2 = st.tabs(["✍️ Your Entries", "📜 Reflection Overview"])
+
+left, right = st.columns([1, 1])
 
 # ---------------------------
-# TAB 1: JOURNAL
+# LEFT: JOURNAL
 # ---------------------------
-with tab1:
+with left:
     st.subheader("Your Entries")
     with st.container(border=True):
         if st.session_state.chat_history:
@@ -113,22 +114,37 @@ with tab1:
                 st.rerun()
 
 # ---------------------------
-# TAB 2: REFLECTION
+# RIGHT: REFLECTION OVERVIEW
 # ---------------------------
-with tab2:
-    st.subheader("Current Reflection Overview")
+with right:
+    st.subheader("Reflection Overview")
     context = st.session_state.last_response or {}
 
-    def render_section(title, value):
-        if value:
-            st.markdown(f"**{title}**")
-            st.markdown(f"> {value}")
+    # Two-column layout for summary + wild card
+    col1, col2 = st.columns(2)
 
-    render_section("Theme", context.get("theme"))
-    render_section("Reflection", context.get("reflection_summary"))
-    render_section("Momentum", context.get("momentum"))
-    render_section("Change", context.get("change"))
-    render_section("Consider Next", context.get("consider_next"))
+    with col1:
+        if context.get("theme"):
+            st.markdown("**Theme**")
+            st.markdown(f"> {context['theme']}")
+        if context.get("reflection_summary"):
+            st.markdown("**Reflection**")
+            st.markdown(f"> {context['reflection_summary']}")
+        if context.get("momentum"):
+            st.markdown("**Momentum**")
+            st.markdown(f"> {context['momentum']}")
+
+    with col2:
+        if context.get("change"):
+            st.markdown("**Change**")
+            st.markdown(f"> {context['change']}")
+        if context.get("consider_next"):
+            st.markdown("**Consider Next**")
+            st.markdown(f"> {context['consider_next']}")
+        if context.get("wild_card"):
+            st.markdown("**🎁 Wild Card**")
+            with st.container(border=True):
+                st.markdown(f"*{context['wild_card']}*")
 
     st.divider()
     st.markdown("**Session Context**")
@@ -141,7 +157,7 @@ with tab2:
     if context.get("user_profile"):
         st.json(context.get("user_profile"))
 
-    # Technical details from debug
+    # Technical details (compact at bottom)
     debug = context.get("debug_log", {})
     keep_keys = [
         "classified_topic",
@@ -155,14 +171,11 @@ with tab2:
     cleaned_debug = {k: v for k, v in debug.items() if k in keep_keys}
 
     if cleaned_debug:
-        st.markdown("**Technical Details**")
-        st.json(cleaned_debug)
-
-    # ---------------------------
-    # Wild Card (countdown or product reco)
-    # ---------------------------
-    if context.get("wild_card"):
         st.divider()
-        st.subheader("🎁 Wild Card")
-        with st.container(border=True):
-            st.markdown(f"*{context['wild_card']}*")
+        with st.expander("Technical Details (nerdy stuff)", expanded=False):
+            st.markdown(
+                "<div style='font-size: 12px;'>",
+                unsafe_allow_html=True
+            )
+            st.json(cleaned_debug)
+            st.markdown("</div>", unsafe_allow_html=True)
