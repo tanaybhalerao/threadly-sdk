@@ -43,7 +43,7 @@ Respond with only the product recommendation sentence.
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        print(f"[⚠️ Wild Card Error] {e}")
+        print(f"[⚠️ Wild Card Error] {e}", flush=True)
         return None
 
 def get_countdown_text(remaining):
@@ -60,7 +60,7 @@ def get_countdown_text(remaining):
 # ---------------------------
 @app.route("/message", methods=["POST"])
 def handle_message():
-    print("✅ REQUEST RECEIVED")
+    print("✅ REQUEST RECEIVED", flush=True)
     data = request.json
 
     user_id = data.get("user_id", "anonymous")
@@ -152,10 +152,10 @@ def handle_message():
         past_memories += threadwise_summaries
         debug_log["resolved_threads_summarized"] = len(threadwise_summaries)
 
-    print("📌 FINAL PAST_MEMORIES GOING INTO SUMMARY:")
+    print("📌 FINAL PAST_MEMORIES GOING INTO SUMMARY:", flush=True)
     for m in past_memories:
-        print("-", m)
-    print("📌 Summary input count:", len(past_memories))
+        print("-", m, flush=True)
+    print("📌 Summary input count:", len(past_memories), flush=True)
 
     summary_data = summarize_memories(past_memories, user_id)
 
@@ -166,13 +166,13 @@ def handle_message():
     if thread_entry_count >= 5:
         last_five = [e.message_text for e in thread_events[-5:] if e.message_text]
         wild_card = generate_wild_card(last_five, classified_topic) or ""
-        print(f"🎁 Generating product recommendation (entries={thread_entry_count})")
+        print(f"🎁 Product recommendation triggered (entries={thread_entry_count})", flush=True)
     else:
         remaining = 5 - thread_entry_count
         if remaining > 0:
             wild_card = get_countdown_text(remaining)
             debug_log["countdown_remaining"] = remaining
-            print(f"⏳ Countdown: {remaining} reflections left")
+            print(f"⏳ Countdown: {remaining} reflections left (entries={thread_entry_count})", flush=True)
 
     # 🧠 Skip user profile for demo users
     if is_demo:
