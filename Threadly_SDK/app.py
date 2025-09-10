@@ -7,11 +7,63 @@ from .models import UserProfile, MemoryEvent
 from sqlalchemy import desc, func
 from collections import defaultdict
 from datetime import datetime, timedelta
+from openai import OpenAI
+import os
 
 app = Flask(__name__)
 init_faiss()
 print_vector_count()
 
+client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+# ---------------------------
+# Wild Card Helpers
+# ---------------------------
+def generate_wild_card(messages, topic):
+    """
+    Generate a quirky product recommendation based on the last 5 messages + topic.
+    """
+    prompt = f"""
+The user has been journaling. Here are their last 5 entries:
+
+{chr(10).join(f"- {m}" for m in messages)}
+
+Topic focus: {topic}
+
+Give ONE quirky product recommendation (something real people might buy, not abstract).
+- Make it surprising but loosely relevant to the theme.
+- Keep it to 1 short sentence.
+- Avoid generic items like "a book" or "a mug".
+- Examples: resistance bands, sleep mask with built-in headphones, desktop punching bag.
+
+Respond with only the product recommendation sentence.
+"""
+    try:
+        response = client.chat.completions.create(
+            model="gpt-4o",
+            messages=[{"role": "system", "content": prompt}],
+            temperature=0.7,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        print(f"[⚠️ Wild Card Error] {e}")
+        return None
+
+def get_countdown_text(remaining):
+    """
+    Roast-style countdown text for entries 1–4.
+    """
+    roast_map = {
+        4: "I know… we’re slow. Look, it takes time for half-baked genius to warm up.",
+        3: "We’re just trying things out here. Some will stick, the rest get dumped into the 'free features' bin.",
+        2: "You seriously think Thread-ly can recommend a product worth buying? Bold of you to assume.",
+        1: "One last reflection before we finally cough up our so-called product wisdom. Brace for disappointment."
+    }
+    return roast_map.get(remaining, "")
+
+# ---------------------------
+# Routes
+# ---------------------------
 @app.route("/message", methods=["POST"])
 def handle_message():
     print("✅ REQUEST RECEIVED")
@@ -32,7 +84,7 @@ def handle_message():
         tags=(tags + ["demo"]) if is_demo else tags,
         importance_score=0.5,
         debug=debug_mode,
-        goal_label=None  # Removed
+        goal_label=None
     )
     debug_log.update(debug_meta)
     classified_topic = debug_meta.get("classified_topic", "unknown")
@@ -50,7 +102,7 @@ def handle_message():
         past_memories = [e.message_text for e in thread_events if e.message_text]
         debug_log["thread_memory_hits"] = len(past_memories)
 
-    # 🧠 Topic-matched fallback messages from different threads (last 30 days)
+    # 🧠 Topic-matched fallback messages
     topic_matched_messages = []
     if classified_topic and message.strip():
         recent_cutoff = datetime.utcnow() - timedelta(days=30)
@@ -79,7 +131,7 @@ def handle_message():
         past_memories += extra_results
         debug_log["additional_past_memories"] = len(extra_results)
 
-    # 🧠 Resolved thread summaries for this topic
+    # 🧠 Resolved thread summaries
     resolved_history = (
         session.query(MemoryEvent)
         .filter_by(user_id=user_id, topic=classified_topic, resolved=True)
@@ -109,6 +161,17 @@ def handle_message():
     print("📌 Summary input count:", len(past_memories))
 
     summary_data = summarize_memories(past_memories, user_id)
+
+    # 🧠 Wild Card logic
+    entry_count = len(past_memories)
+    wild_card = ""
+    if entry_count >= 5:
+        last_five = past_memories[-5:]
+        wild_card = generate_wild_card(last_five, classified_topic) or ""
+    else:
+        remaining = 5 - entry_count
+        if remaining > 0:
+            wild_card = get_countdown_text(remaining)
 
     # 🧠 Skip user profile for demo users
     if is_demo:
@@ -160,7 +223,8 @@ def handle_message():
         "consider_next": summary_data["consider_next"],
         "user_profile": user_profile,
         "topic_list": topic_freq,
-        "behavioral_insight": behavioral_insight
+        "behavioral_insight": behavioral_insight,
+        "wild_card": wild_card
     }
 
     if debug_mode:

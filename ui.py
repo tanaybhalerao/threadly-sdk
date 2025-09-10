@@ -19,8 +19,6 @@ if "user_id" not in st.session_state:
     st.session_state.user_id = f"demo_{uuid4().hex[:8]}"
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
-if "debug" not in st.session_state:
-    st.session_state.debug = False
 if "last_response" not in st.session_state:
     st.session_state.last_response = {}
 if "last_message" not in st.session_state:
@@ -40,10 +38,9 @@ st.set_page_config(
 # ---------------------------
 with st.sidebar:
     st.title("Settings")
-    st.session_state.debug = st.toggle("Debug Mode", value=st.session_state.debug)
     st.markdown("---")
     st.markdown(f"**Session ID:** `{st.session_state.user_id}`")
-    st.markdown(f"**Reflections used:** {len(st.session_state.chat_history)}/3")
+    st.markdown(f"**Reflections used:** {len(st.session_state.chat_history)}/5")
     if st.button("Start Over"):
         for key in list(st.session_state.keys()):
             del st.session_state[key]
@@ -53,26 +50,22 @@ with st.sidebar:
 # MAIN TITLE
 # ---------------------------
 st.title("Thread-ly: Reflective Journal")
-left, right = st.columns([1, 1])
+tab1, tab2 = st.tabs(["✍️ Your Entries", "📜 Reflection Overview"])
 
 # ---------------------------
-# LEFT: JOURNAL
+# TAB 1: JOURNAL
 # ---------------------------
-with left:
+with tab1:
     st.subheader("Your Entries")
     with st.container(border=True):
         if st.session_state.chat_history:
-            grouped = defaultdict(list)
+            # Show oldest → newest
             for msg in st.session_state.chat_history:
-                grouped[msg.get("thread_id", "unknown")].append(msg)
-            for tid, messages in reversed(list(grouped.items())):
-                st.markdown(f"**Thread {tid}**")
-                for msg in messages:
-                    time = msg.get("timestamp", "")
-                    content = msg["content"]
-                    st.markdown(f"- {content}")
-                    if time:
-                        st.caption(time)
+                time = msg.get("timestamp", "")
+                content = msg["content"]
+                st.markdown(f"- {content}")
+                if time:
+                    st.caption(time)
         else:
             st.info("No entries yet. Start by reflecting on something.")
 
@@ -99,7 +92,7 @@ with left:
                             "user_id": st.session_state.user_id,
                             "message": user_msg,
                             "tags": ["demo"],
-                            "debug_mode": st.session_state.debug,
+                            "debug_mode": True,  # Always ON
                             "demo_mode": True,
                             "goal_label": "",
                             "importance_score": 0.5
@@ -120,15 +113,16 @@ with left:
                 st.rerun()
 
 # ---------------------------
-# RIGHT: SUMMARY
+# TAB 2: REFLECTION
 # ---------------------------
-with right:
+with tab2:
     st.subheader("Current Reflection Overview")
     context = st.session_state.last_response or {}
 
     def render_section(title, value):
-        st.markdown(f"**{title}**")
-        st.markdown(f"> {value or 'N/A'}")
+        if value:
+            st.markdown(f"**{title}**")
+            st.markdown(f"> {value}")
 
     render_section("Theme", context.get("theme"))
     render_section("Reflection", context.get("reflection_summary"))
@@ -138,11 +132,37 @@ with right:
 
     st.divider()
     st.markdown("**Session Context**")
-    st.markdown(f"`Thread ID:` `{context.get('thread_id', 'N/A')}`")
 
-    if st.session_state.debug:
-        debug = context.get("debug_log", {})
-        if debug.get("topic_matched_memory"):
-            st.markdown("✅ Using context from a **related topic**, not just this thread.")
-        with st.expander("Internal Debug Log"):
-            st.json(debug)
+    # Goal label: show only if present
+    if context.get("goal_label"):
+        st.markdown(f"`Goal:` `{context.get('goal_label')}`")
+
+    # User profile if available
+    if context.get("user_profile"):
+        st.json(context.get("user_profile"))
+
+    # Technical details from debug
+    debug = context.get("debug_log", {})
+    keep_keys = [
+        "classified_topic",
+        "emotion",
+        "nuance",
+        "subtopics",
+        "selected_thread_score",
+        "thread_continuation_reason",
+        "thread_memory_hits",
+    ]
+    cleaned_debug = {k: v for k, v in debug.items() if k in keep_keys}
+
+    if cleaned_debug:
+        st.markdown("**Technical Details**")
+        st.json(cleaned_debug)
+
+    # ---------------------------
+    # Wild Card (countdown or product reco)
+    # ---------------------------
+    if context.get("wild_card"):
+        st.divider()
+        st.subheader("🎁 Wild Card")
+        with st.container(border=True):
+            st.markdown(f"*{context['wild_card']}*")
