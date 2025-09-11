@@ -3,19 +3,19 @@ import re
 from datetime import datetime, timedelta
 from .db_setup import SessionLocal
 from .models import MemoryEvent
-from .similarity_utils import get_nuance_similarity
+from .similarity_utils import get_nuance_similarity, get_embedding_similarity
 from .embedding_utils import get_embedding, search_thread_signatures
 
 # Configurable thresholds
 NUANCE_SIMILARITY_THRESHOLD = 0.6
-THREAD_EMBEDDING_SIMILARITY_THRESHOLD = 0.82
+THREAD_EMBEDDING_SIMILARITY_THRESHOLD = 0.82  # Embedding similarity cutoff
 THREAD_MAX_DAYS_OLD = 30
 SUBTOPIC_OVERLAP_MIN = 1
 EMBEDDING_GUARDRAIL_SCORE = 0.75  # Below this, ignore even if close
 
 def detect_ambiguous_reference(text: str) -> bool:
     pronouns = ["it", "that", "this", "those", "them"]
-    return any(re.search(rf"\\b{p}\\b", text.lower()) for p in pronouns)
+    return any(re.search(rf"\b{p}\b", text.lower()) for p in pronouns)
 
 def count_overlap(a: list[str], b: list[str]) -> int:
     return len(set(a) & set(b))
@@ -56,7 +56,7 @@ def get_active_thread_id(
             best_reason = "recent thread with same topic"
             reference_past_issue = True
 
-    # 🧠 Second: Embedding + nuance + subtopic logic if no topic match
+    # 🧠 Second: Embedding + nuance + subtopic logic if no strong topic match
     if not best_thread_id:
         matched_threads = search_thread_signatures(current_message_text, user_id=user_id, top_k=5)
 
@@ -80,6 +80,7 @@ def get_active_thread_id(
 
             past_subtopics = [s.strip() for s in recent_msg.subtopics.split(",") if s.strip()]
             subtopic_overlap = count_overlap(current_subtopics, past_subtopics)
+
             topic_match = (recent_msg.topic == current_topic)
 
             score = 0.0
@@ -98,6 +99,12 @@ def get_active_thread_id(
                 score += 0.3
                 reason += "ambiguous language; "
 
+            # 🔑 NEW: embedding similarity override for cross-topic continuity
+            emb_sim = get_embedding_similarity(current_message_text, recent_msg.message_text)
+            if emb_sim >= THREAD_EMBEDDING_SIMILARITY_THRESHOLD:
+                score = max(score, emb_sim)  # embeddings dominate when strong
+                reason += f"embedding similarity {emb_sim:.2f}; "
+
             if score >= EMBEDDING_GUARDRAIL_SCORE and score > best_score:
                 best_score = score
                 best_thread_id = thread_id
@@ -110,7 +117,7 @@ def get_active_thread_id(
     session.close()
 
     if debug_log is not None:
-        debug_log["thread_selection_method"] = "topic-first fallback + embedding scoring"
+        debug_log["thread_selection_method"] = "topic-first + embedding override"
         debug_log["thread_intensity_signal"] = thread_is_intensifying
         debug_log["thread_continuation_reason"] = best_reason
         debug_log["selected_thread_score"] = round(best_score, 3)
