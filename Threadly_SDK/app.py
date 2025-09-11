@@ -104,7 +104,7 @@ def handle_message():
     )
     debug_log["user_entry_count"] = user_entry_count
 
-    # 🔍 Get all messages in this thread
+    # 🔍 Get all messages in this thread (for summarization/context continuity)
     thread_events = []
     if message.strip():
         thread_events = (
@@ -115,7 +115,7 @@ def handle_message():
         )
         debug_log["thread_memory_hits"] = len(thread_events)
 
-    # Collect text only for summarization
+    # Collect raw messages for summarization
     past_memories = [e.message_text for e in thread_events if e.message_text]
 
     # 🧠 Topic-matched fallback messages
@@ -171,11 +171,7 @@ def handle_message():
         past_memories += threadwise_summaries
         debug_log["resolved_threads_summarized"] = len(threadwise_summaries)
 
-    print("📌 FINAL PAST_MEMORIES GOING INTO SUMMARY:", flush=True)
-    for m in past_memories:
-        print("-", m, flush=True)
-    print("📌 Summary input count:", len(past_memories), flush=True)
-
+    # Summarization still uses raw messages
     summary_data = summarize_memories(past_memories, user_id)
 
     # 🧠 Wild Card + Roast logic (global counter)
@@ -183,7 +179,7 @@ def handle_message():
     roast_message = get_roast_message(user_entry_count)
 
     if user_entry_count >= 5:
-        # Last 5 entries as structured Topic/Subtopics/Emotion
+        # Last 5 entries as structured Topic/Subtopics/Emotion (for product recs only)
         recent_events = (
             session.query(MemoryEvent)
             .filter_by(user_id=user_id)
