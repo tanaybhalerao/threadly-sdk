@@ -47,7 +47,7 @@ with st.sidebar:
     # 👇 NEW: threshold slider
     st.session_state.embedding_threshold = st.slider(
         "Embedding Threshold",
-        min_value=0.70,
+        min_value=0.50,
         max_value=0.90,
         value=st.session_state.embedding_threshold,
         step=0.01,
