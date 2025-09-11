@@ -19,28 +19,28 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 # ---------------------------
 # Wild Card Helpers
 # ---------------------------
-def generate_wild_card(messages, topic):
+def generate_wild_card(structured_entries, topic):
     prompt = f"""
-The user has been journaling. Here are their last 5 entries:
+The user has been journaling. Here are their last 5 entries summarized:
 
-{chr(10).join(f"- {m}" for m in messages)}
+{chr(10).join(f"- {m}" for m in structured_entries)}
 
 Topic focus: {topic}
 
-Recommend ONE real consumer product that the user could realistically purchase online or in a store.
-- Keep it practical and relevant to their theme.
-- Suggest well-known categories: fitness gear, home office gadgets, kitchen tools, wellness items, travel accessories, or books.
+Recommend ONE real consumer product or sponsorship category that the user could realistically purchase online or in a store.
+- Base it on recurring topics, subtopics, and emotions across the 5 entries (not just the most recent one).
+- Suggest well-known, practical categories: fitness gear, creator tools, home office gadgets, kitchen tools, wellness items, travel accessories, or books.
 - Avoid novelty, joke, or fantasy products.
-- Keep the output short and simple, just the product name.
+- Keep the output short and simple, just the product or category name.
 
-Examples: "Adjustable dumbbells", "Noise-canceling headphones", "A standing desk mat", "A guided journal".
+Examples: "Adjustable dumbbells", "Noise-canceling headphones", "A standing desk mat", "Ring light kit", "Video editing software".
 Only output the product suggestion, nothing else.
 """
     try:
         response = client.chat.completions.create(
             model="gpt-4o",
             messages=[{"role": "system", "content": prompt}],
-            temperature=0.6,
+            temperature=0.5,
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
@@ -183,7 +183,7 @@ def handle_message():
     roast_message = get_roast_message(user_entry_count)
 
     if user_entry_count >= 5:
-        # Last 5 messages globally
+        # Last 5 entries as structured Topic/Subtopics/Emotion
         recent_events = (
             session.query(MemoryEvent)
             .filter_by(user_id=user_id)
@@ -191,8 +191,15 @@ def handle_message():
             .limit(5)
             .all()
         )
-        last_five = [e.message_text for e in reversed(recent_events) if e.message_text]
-        wild_card = generate_wild_card(last_five, classified_topic) or ""
+        structured_last_five = []
+        for ev in reversed(recent_events):
+            if not ev:
+                continue
+            structured_last_five.append(
+                f"Topic: {ev.topic} | Subtopics: {ev.subtopics or 'N/A'} | Emotion: {ev.sentiment}"
+            )
+
+        wild_card = generate_wild_card(structured_last_five, classified_topic) or ""
         print(f"🎁 Product recommendation triggered (global entries={user_entry_count})", flush=True)
     else:
         remaining = 5 - user_entry_count
