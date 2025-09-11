@@ -80,6 +80,9 @@ def handle_message():
     debug_mode = data.get("debug_mode", False)
     is_demo = data.get("demo_mode", False) or user_id.startswith("demo_")
 
+    # 👇 NEW: embedding threshold override
+    embedding_threshold = float(data.get("embedding_threshold", 0.82))
+
     debug_log = {}
 
     # 🧠 Ingest message
@@ -89,7 +92,8 @@ def handle_message():
         tags=(tags + ["demo"]) if is_demo else tags,
         importance_score=0.5,
         debug=debug_mode,
-        goal_label=None
+        goal_label=None,
+        embedding_threshold=embedding_threshold   # 👈 pass through
     )
     debug_log.update(debug_meta)
     classified_topic = debug_meta.get("classified_topic", "unknown")
@@ -155,18 +159,15 @@ def handle_message():
         .limit(10)
         .all()
     )
-
     threads = defaultdict(list)
     for m in resolved_history:
         threads[m.thread_id].append(
             f"[Emotion: {m.sentiment} | Nuance: {m.topic_nuance}] {m.message_text}"
         )
-
     threadwise_summaries = []
     for tid, entries in threads.items():
         summary = summarize_memories(entries, user_id)
         threadwise_summaries.append(f"[Thread {tid}]\n{summary['reflection_summary']}")
-
     if threadwise_summaries:
         past_memories += threadwise_summaries
         debug_log["resolved_threads_summarized"] = len(threadwise_summaries)
@@ -264,7 +265,6 @@ def handle_message():
 
     return jsonify({"context": context})
 
-
 @app.route("/profile/<user_id>", methods=["GET"])
 def get_user_profile(user_id):
     session = SessionLocal()
@@ -284,7 +284,6 @@ def get_user_profile(user_id):
         "active_topic_streak": profile.active_topic_streak,
         "repetition_count": profile.repetition_count
     })
-
 
 @app.route("/ping")
 def ping():

@@ -23,6 +23,8 @@ if "last_response" not in st.session_state:
     st.session_state.last_response = {}
 if "last_message" not in st.session_state:
     st.session_state.last_message = ""
+if "embedding_threshold" not in st.session_state:
+    st.session_state.embedding_threshold = 0.82  # default
 
 # ---------------------------
 # PAGE CONFIG
@@ -41,6 +43,17 @@ with st.sidebar:
     st.markdown("---")
     st.markdown(f"**Session ID:** `{st.session_state.user_id}`")
     st.markdown(f"**Reflections used:** {len(st.session_state.chat_history)}/5")
+
+    # 👇 NEW: threshold slider
+    st.session_state.embedding_threshold = st.slider(
+        "Embedding Threshold",
+        min_value=0.70,
+        max_value=0.90,
+        value=st.session_state.embedding_threshold,
+        step=0.01,
+        help="Controls how strict thread matching is. Lower = more forgiving, Higher = more strict."
+    )
+
     if st.button("Start Over"):
         for key in list(st.session_state.keys()):
             del st.session_state[key]
@@ -51,11 +64,9 @@ with st.sidebar:
 # ---------------------------
 st.title("Thread-ly: Reflective Journal")
 
-# Always read last context so roast appears immediately under header
 header_context = st.session_state.last_response or {}
 roast_msg = header_context.get("roast_message")
 if roast_msg:
-    # lightweight, visible line without a header
     st.markdown(
         f"<div style='margin-top:-8px;margin-bottom:16px;font-size:14px;opacity:0.85;'>{roast_msg}</div>",
         unsafe_allow_html=True
@@ -70,7 +81,6 @@ with left:
     st.subheader("Your Entries")
     with st.container(border=True):
         if st.session_state.chat_history:
-            # Show oldest → newest
             for msg in st.session_state.chat_history:
                 time = msg.get("timestamp", "")
                 content = msg["content"]
@@ -103,10 +113,11 @@ with left:
                             "user_id": st.session_state.user_id,
                             "message": user_msg,
                             "tags": ["demo"],
-                            "debug_mode": True,  # Always ON
+                            "debug_mode": True,
                             "demo_mode": True,
                             "goal_label": "",
-                            "importance_score": 0.5
+                            "importance_score": 0.5,
+                            "embedding_threshold": st.session_state.embedding_threshold  # 👈 NEW
                         })
 
                         if response.status_code == 200:
@@ -135,7 +146,6 @@ with right:
             st.markdown(f"### {title}")
             st.write(value)
 
-    # Two-column layout for summary + product reco
     col1, col2 = st.columns(2)
 
     with col1:
@@ -146,15 +156,13 @@ with right:
     with col2:
         render_block("Change", context.get("change"))
         render_block("Consider Next", context.get("consider_next"))
-
-        # Product recommendation / countdown lives here
         if context.get("wild_card"):
             st.markdown("### Product Recommendation")
             with st.container(border=True):
                 st.write(context["wild_card"])
 
     # ---------------------------
-    # Technical details (compact at bottom)
+    # Technical details
     # ---------------------------
     debug = context.get("debug_log", {})
     keep_keys = [
@@ -166,7 +174,9 @@ with right:
         "thread_continuation_reason",
         "thread_memory_hits",
         "user_entry_count",
-        "countdown_remaining"
+        "countdown_remaining",
+        "embedding_threshold_used",   # 👈 NEW: log threshold
+        "best_embedding_similarity"   # 👈 NEW: log similarity
     ]
     cleaned_debug = {k: v for k, v in debug.items() if k in keep_keys}
 

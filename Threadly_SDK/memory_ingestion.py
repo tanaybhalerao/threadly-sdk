@@ -50,7 +50,8 @@ def ingest_message(
     importance_score=0.5,
     debug=False,
     goal_label=None,
-    demo_mode=False
+    demo_mode=False,
+    embedding_threshold=0.82   # 👈 NEW: default matches thread_manager.py
 ):
     if not message_text:
         return "", False, False, {"skipped": True, "reason": "Empty message"}
@@ -73,7 +74,8 @@ def ingest_message(
         debug_log=debug_log,
         current_message_text=message_text,
         current_topic=topic,
-        current_subtopics=subtopics
+        current_subtopics=subtopics,
+        embedding_threshold=embedding_threshold   # 👈 forward param
     )
 
     if debug_log is not None:
