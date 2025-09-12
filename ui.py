@@ -117,7 +117,7 @@ with left:
                             "demo_mode": True,
                             "goal_label": "",
                             "importance_score": 0.5,
-                            "embedding_threshold": st.session_state.embedding_threshold  # 👈 NEW
+                            "embedding_threshold": st.session_state.embedding_threshold
                         })
 
                         if response.status_code == 200:
@@ -175,12 +175,19 @@ with right:
         "thread_memory_hits",
         "user_entry_count",
         "countdown_remaining",
-        "embedding_threshold_used",   # 👈 NEW: log threshold
-        "best_embedding_similarity"   # 👈 NEW: log similarity
+        "embedding_threshold_used",
+        "best_embedding_similarity"
     ]
     cleaned_debug = {k: v for k, v in debug.items() if k in keep_keys}
 
-    if cleaned_debug:
+    if cleaned_debug or debug.get("candidate_threads"):
         st.divider()
         with st.expander("Technical Details", expanded=False):
-            st.json(cleaned_debug)
+            if cleaned_debug:
+                st.json(cleaned_debug)
+
+            # 👇 NEW: show candidate threads as table
+            candidate_threads = debug.get("candidate_threads", [])
+            if candidate_threads:
+                st.markdown("**Candidate Threads Scored**")
+                st.dataframe(candidate_threads, use_container_width=True)
