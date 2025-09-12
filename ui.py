@@ -168,12 +168,12 @@ with left:
         st.rerun()
 
 # ---------------------------
-# RIGHT: REFLECTION OVERVIEW (with translucent backdrop)
+# RIGHT: REFLECTION OVERVIEW (ENTIRE COLUMN WRAPPED)
 # ---------------------------
 with right:
     st.markdown(
         """
-        <div style="background: rgba(255,255,255,0.05); padding:20px; border-radius:12px;">
+        <div style="background: rgba(255,255,255,0.05); padding:24px; border-radius:12px;">
         """,
         unsafe_allow_html=True
     )
@@ -208,7 +208,7 @@ with right:
             st.markdown("### Product Recommendation")
             st.markdown(
                 f"""
-                <div style="background: rgba(255,255,255,0.12); padding:12px; border-radius:10px;">
+                <div style="background: rgba(255,255,255,0.12); padding:12px; border-radius:10px; margin-top:8px;">
                     {context['wild_card']}
                 </div>
                 """,
