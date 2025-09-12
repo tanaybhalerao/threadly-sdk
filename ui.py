@@ -47,7 +47,6 @@ with st.sidebar:
     st.markdown(f"**Reflections used:** {len(st.session_state.chat_history)}/5")
 
     st.subheader("Settings")
-    # Timezone dropdown
     tz_options = [
         "America/Los_Angeles", "US/Eastern", "Europe/London",
         "Europe/Amsterdam", "Asia/Kolkata", "Asia/Tokyo", "Australia/Sydney"
@@ -169,9 +168,16 @@ with left:
         st.rerun()
 
 # ---------------------------
-# RIGHT: REFLECTION OVERVIEW
+# RIGHT: REFLECTION OVERVIEW (with translucent backdrop)
 # ---------------------------
 with right:
+    st.markdown(
+        """
+        <div style="background: rgba(255,255,255,0.05); padding:20px; border-radius:12px;">
+        """,
+        unsafe_allow_html=True
+    )
+
     st.subheader("Reflection Overview")
 
     context = st.session_state.last_response or {}
@@ -202,7 +208,7 @@ with right:
             st.markdown("### Product Recommendation")
             st.markdown(
                 f"""
-                <div style="background: rgba(255,255,255,0.08); padding:12px; border-radius:10px;">
+                <div style="background: rgba(255,255,255,0.12); padding:12px; border-radius:10px;">
                     {context['wild_card']}
                 </div>
                 """,
@@ -237,3 +243,5 @@ with right:
             if candidate_threads:
                 st.markdown("**Candidate Threads Scored**")
                 st.dataframe(candidate_threads, use_container_width=True)
+
+    st.markdown("</div>", unsafe_allow_html=True)
