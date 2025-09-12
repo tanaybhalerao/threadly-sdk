@@ -24,7 +24,7 @@ if "last_response" not in st.session_state:
 if "last_message" not in st.session_state:
     st.session_state.last_message = ""
 if "embedding_threshold" not in st.session_state:
-    st.session_state.embedding_threshold = 0.82  # default
+    st.session_state.embedding_threshold = 0.4  # default
 
 # ---------------------------
 # PAGE CONFIG
@@ -47,10 +47,10 @@ with st.sidebar:
     # 👇 NEW: threshold slider
     st.session_state.embedding_threshold = st.slider(
         "Embedding Threshold",
-        min_value=0.50,
-        max_value=0.90,
+        min_value=0.00,
+        max_value=1.00,
         value=st.session_state.embedding_threshold,
-        step=0.01,
+        step=0.10,
         help="Controls how strict thread matching is. Lower = more forgiving, Higher = more strict."
     )
 
@@ -68,7 +68,7 @@ header_context = st.session_state.last_response or {}
 roast_msg = header_context.get("roast_message")
 if roast_msg:
     st.markdown(
-        f"<div style='margin-top:-8px;margin-bottom:16px;font-size:14px;opacity:0.85;'>{roast_msg}</div>",
+        f"<div style='margin-top:-10px;margin-bottom:16px;font-size:16px;opacity:0.85;'>{roast_msg}</div>",
         unsafe_allow_html=True
     )
 
