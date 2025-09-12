@@ -7,11 +7,30 @@ from uuid import uuid4
 import requests
 from zoneinfo import ZoneInfo
 import time
+import csv
 
 # ---------------------------
 # CONFIG
 # ---------------------------
 BACKEND_URL = "https://threadly-backend-sqvr.onrender.com/message"
+LOG_FILE = "activity_log.csv"
+
+# ---------------------------
+# LOGGING
+# ---------------------------
+def log_action(user_id, action, content="", meta=None):
+    try:
+        with open(LOG_FILE, "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                datetime.utcnow().isoformat() + "Z",
+                user_id,
+                action,
+                content,
+                str(meta) if meta else ""
+            ])
+    except Exception:
+        pass  # never block the user
 
 # ---------------------------
 # SESSION STATE INIT
@@ -94,28 +113,38 @@ tab_intro, tab_journal = st.tabs(["📘 Intro & Guide", "📝 Journal"])
 # ---------------------------
 with tab_intro:
     st.title("Welcome to Thread-ly")
-    st.write("This guide will help you understand how journaling works here and give you starter ideas.")
 
-    st.subheader("📖 Journal Components")
-    st.markdown("""
-    - **Theme** → The main thread tying your reflections together.  
-    - **Reflection** → What you’re circling around in your thoughts.  
-    - **Momentum** → Where your energy is building or fading.  
-    - **Change** → What’s shifting compared to before.  
-    - **Consider Next** → A gentle nudge on what to explore.  
-    - **Roast** → A playful, candid observation (sometimes nudges about changing context).  
-    - **Product Recommendation** → Occasionally surfaces related ideas.  
-    """)
+    st.markdown(
+        """
+        Thread-ly is a tool to capture your thoughts.  
+        Most journals treat each entry as isolated — but our minds don’t work that way.  
+        Thread-ly connects your reflections across time, showing themes, shifts, and continuities.
+        """.strip()
+    )
 
-    st.subheader("🧭 How to Navigate")
-    st.markdown("""
-    1. Go to the **Journal tab**.  
-    2. Add up to 5 reflections.  
-    3. Watch how Thread-ly connects them over time.  
-    4. Hit **Start Over** to reset anytime.  
-    """)
+    st.subheader("How to Navigate")
+    st.markdown(
+        """
+        1. Go to the **Journal tab**  
+        2. Add up to 5 reflections  
+        3. Watch how Thread-ly connects them into threads  
+        4. Hit **Start Over** anytime
+        """.strip()
+    )
 
-    st.subheader("✨ Health & Fitness Starter Reflections")
+    st.subheader("Journal Components")
+    st.markdown(
+        """
+        **Theme** — the central topic emerging in your reflections.  
+        **Reflection** — a condensed summary of what you expressed.  
+        **Momentum** — where your energy is building or fading.  
+        **Change** — what’s shifting compared to before.  
+        **Consider Next** — a gentle suggestion on what to explore further.  
+        **Product Recommendation** — occasionally surfaces a related idea.  
+        """.strip()
+    )
+
+    st.subheader("Starter Reflections (Health & Fitness)")
     fitness_examples = [
         "I’m trying to stick with running three times a week, but it’s hard to stay consistent.",
         "Yesterday’s run was tough, but at least I got out the door.",
@@ -127,7 +156,8 @@ with tab_intro:
     for i, example in enumerate(fitness_examples, 1):
         if st.button(f"Add Example {i}"):
             st.session_state.journal_input = example
-            st.experimental_rerun()
+            log_action(st.session_state.user_id, "used_example", example)
+            st.rerun()
 
 # ---------------------------
 # TAB 2: JOURNAL
@@ -167,7 +197,7 @@ with tab_journal:
                         "thread_id": "pending"
                     })
 
-                    # staged waiting animation instead of spinner
+                    # staged waiting animation
                     with st.empty():
                         msg_area = st.empty()
                         stages = [
@@ -196,6 +226,7 @@ with tab_journal:
                             thread_id = context.get("thread_id", "unknown")
                             st.session_state.chat_history[-1]["thread_id"] = thread_id
                             st.session_state.last_response = context
+                            log_action(st.session_state.user_id, "add_reflection", user_msg, context)
                         else:
                             st.error("Backend error. Please try again later.")
                     except Exception as e:
@@ -204,7 +235,7 @@ with tab_journal:
                     st.session_state.last_message = user_msg
                     st.rerun()
 
-        # Start Over button (clean, visible)
+        # Start Over button
         st.markdown(
             """
             <style>
@@ -220,6 +251,7 @@ with tab_journal:
             unsafe_allow_html=True
         )
         if st.button("Start Over", key="startover"):
+            log_action(st.session_state.user_id, "start_over")
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             st.rerun()
@@ -234,7 +266,7 @@ with tab_journal:
         # Roast message logic
         roast_msg = context.get("roast_message")
         if roast_msg:
-            if entry_count == 3:  # nudge on third reflection (likely context switch)
+            if entry_count == 3:
                 st.markdown(
                     """
                     <div style="text-align:center; font-size:20px; font-style:italic; margin: 0 0 24px 0; color:#ffcc00;">
@@ -264,7 +296,6 @@ with tab_journal:
             render_block("Change", context.get("change"))
             render_block("Consider Next", context.get("consider_next"))
 
-            # Product Recommendation
             if context.get("wild_card"):
                 st.markdown(
                     f"""
