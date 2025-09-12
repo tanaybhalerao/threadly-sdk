@@ -49,12 +49,27 @@ if "timezone" not in st.session_state:
     st.session_state.timezone = "America/Los_Angeles"
 
 # ---------------------------
-# PAGE CONFIG
+# PAGE CONFIG + GLOBAL STYLE
 # ---------------------------
 st.set_page_config(
     page_title="Thread-ly Journal",
     layout="wide",
     initial_sidebar_state="expanded"
+)
+
+# Center + enlarge font
+st.markdown(
+    """
+    <style>
+    .block-container {
+        max-width: 900px;
+        margin: auto;
+        font-size: 1.1rem;
+        line-height: 1.6;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
 )
 
 # ---------------------------
@@ -133,16 +148,27 @@ with tab_intro:
     )
 
     st.subheader("Journal Components")
-    st.markdown(
-        """
-        **Theme** — the central topic emerging in your reflections.  
-        **Reflection** — a condensed summary of what you expressed.  
-        **Momentum** — where your energy is building or fading.  
-        **Change** — what’s shifting compared to before.  
-        **Consider Next** — a gentle suggestion on what to explore further.  
-        **Product Recommendation** — occasionally surfaces a related idea.  
-        """.strip()
-    )
+    comp_left, comp_right = st.columns(2)
+
+    with comp_left:
+        st.markdown("### Theme")
+        st.write("The central topic emerging in your reflections.")
+
+        st.markdown("### Momentum")
+        st.write("Where your energy is building or fading.")
+
+        st.markdown("### Consider Next")
+        st.write("A gentle suggestion on what to explore further.")
+
+    with comp_right:
+        st.markdown("### Reflection")
+        st.write("A condensed summary of what you expressed.")
+
+        st.markdown("### Change")
+        st.write("What’s shifting compared to before.")
+
+        st.markdown("### Product Recommendation")
+        st.write("Occasionally surfaces a related idea.")
 
     st.subheader("Starter Reflections (Health & Fitness)")
     fitness_examples = [
@@ -154,9 +180,10 @@ with tab_intro:
     ]
 
     for i, example in enumerate(fitness_examples, 1):
-        if st.button(f"Add Example {i}"):
+        if st.button(f"Add Example {i}", key=f"ex{i}"):
             st.session_state.journal_input = example
             log_action(st.session_state.user_id, "used_example", example)
+            st.success("Added to Journal! Go to the Journal tab to see it.")
             st.rerun()
 
 # ---------------------------
