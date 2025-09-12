@@ -24,9 +24,8 @@ if "last_response" not in st.session_state:
 if "last_message" not in st.session_state:
     st.session_state.last_message = ""
 if "embedding_threshold" not in st.session_state:
-    st.session_state.embedding_threshold = 0.2  # default
+    st.session_state.embedding_threshold = 0.2
 if "timezone" not in st.session_state:
-    # Default to LA; user can change from sidebar. (Browser auto-detect is tricky in pure Streamlit.)
     st.session_state.timezone = "America/Los_Angeles"
 
 # ---------------------------
@@ -35,32 +34,32 @@ if "timezone" not in st.session_state:
 st.set_page_config(
     page_title="Thread-ly Journal",
     layout="wide",
-    initial_sidebar_state="collapsed"  # collapsible to maximize space
+    initial_sidebar_state="expanded"
 )
 
 # ---------------------------
-# SIDEBAR CONTROLS
+# SIDEBAR (INFO)
 # ---------------------------
 with st.sidebar:
-    st.title("Settings")
+    st.title("Info")
     st.markdown("---")
-    st.markdown(f"**Session ID:** `{st.session_state.user_id}`")
+    st.markdown(f"**User ID:** `{st.session_state.user_id}`")
     st.markdown(f"**Reflections used:** {len(st.session_state.chat_history)}/5")
 
-    # Timezone selector (so dates show in the user's local time)
+    st.subheader("Settings")
+    # Timezone dropdown
     tz_options = [
-        "America/Los_Angeles", "US/Eastern", "Europe/London", "Europe/Amsterdam",
-        "Asia/Kolkata", "Asia/Tokyo", "Australia/Sydney"
+        "America/Los_Angeles", "US/Eastern", "Europe/London",
+        "Europe/Amsterdam", "Asia/Kolkata", "Asia/Tokyo", "Australia/Sydney"
     ]
     st.session_state.timezone = st.selectbox(
-        "Display Timezone (IANA)",
+        "Timezone",
         options=tz_options,
         index=0,
         help="Controls how entry timestamps are displayed."
     )
 
     with st.expander("Under the hood", expanded=False):
-        # Threshold slider moved into Under the hood
         st.session_state.embedding_threshold = st.slider(
             "Embedding Threshold",
             min_value=0.00,
@@ -70,19 +69,6 @@ with st.sidebar:
             help="Lower = more forgiving, Higher = more strict thread matching."
         )
 
-    # Keep Start Over here too (you asked to move it below Add Reflection; we added it there as well)
-    if st.button("Start Over (sidebar)"):
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
-        st.rerun()
-
-# ---------------------------
-# MAIN TITLE
-# ---------------------------
-st.title("Thread-ly: Reflective Journal")
-
-left, right = st.columns([1, 1])
-
 # ---------------------------
 # HELPERS
 # ---------------------------
@@ -90,15 +76,20 @@ def now_local_str():
     tz = ZoneInfo(st.session_state.timezone)
     return datetime.now(tz).strftime("%b %d, %Y %I:%M %p")
 
-def render_block(title, value, hint=None):
+def render_block(title, value):
     if value:
         st.markdown(f"### {title}")
         st.write(value)
-        if hint:
-            st.caption(hint)
 
 def dict_to_rows(d):
     return [{"Field": k, "Value": v if not isinstance(v, list) else ", ".join(map(str, v))} for k, v in d.items()]
+
+# ---------------------------
+# MAIN TITLE
+# ---------------------------
+st.title("Thread-ly: Reflective Journal")
+
+left, right = st.columns([1, 1])
 
 # ---------------------------
 # LEFT: JOURNAL
@@ -125,7 +116,6 @@ with left:
             user_msg = st.text_area("What’s on your mind today?", key="journal_input", height=120)
             submit = st.form_submit_button("Save Reflection")
             if submit and user_msg.strip():
-                # Save with local timestamp for display
                 st.session_state.chat_history.append({
                     "role": "user",
                     "content": user_msg,
@@ -145,7 +135,6 @@ with left:
                             "importance_score": 0.5,
                             "embedding_threshold": st.session_state.embedding_threshold
                         })
-
                         if response.status_code == 200:
                             data = response.json()
                             context = data.get("context", {})
@@ -160,8 +149,21 @@ with left:
                 st.session_state.last_message = user_msg
                 st.rerun()
 
-    # Start Over button (requested position: below Add Reflection)
-    if st.button("Start Over", type="primary"):
+    # Start Over button (better style)
+    st.markdown(
+        """
+        <style>
+        .stButton>button.start-over {
+            background-color: #e63946;
+            color: white;
+            font-weight: bold;
+            border-radius: 6px;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+    if st.button("Start Over", key="startover", help="Reset demo", type="primary"):
         for key in list(st.session_state.keys()):
             del st.session_state[key]
         st.rerun()
@@ -174,20 +176,13 @@ with right:
 
     context = st.session_state.last_response or {}
 
-    # Roast (bigger + positioned here)
+    # Roast (centered + quote style)
     roast_msg = context.get("roast_message")
     if roast_msg:
         st.markdown(
             f"""
-            <div style="
-                font-size:18px;
-                line-height:1.5;
-                padding:12px 14px;
-                border-radius:12px;
-                border:1px solid rgba(255,255,255,0.15);
-                margin-bottom:16px;
-                opacity:0.95;">
-                {roast_msg}
+            <div style="text-align:center; font-size:20px; font-style:italic; margin: 0 0 24px 0;">
+                “{roast_msg}”
             </div>
             """,
             unsafe_allow_html=True
@@ -196,21 +191,25 @@ with right:
     col1, col2 = st.columns(2)
 
     with col1:
-        render_block("Theme", context.get("theme"), "Biggest thread tying your entries.")
-        render_block("Reflection", context.get("reflection_summary"), "What you've been circling around.")
-        render_block("Momentum", context.get("momentum"), "Where energy is building or fading.")
+        render_block("Theme", context.get("theme"))
+        render_block("Reflection", context.get("reflection_summary"))
+        render_block("Momentum", context.get("momentum"))
 
     with col2:
-        render_block("Change", context.get("change"), "What's shifting compared to before.")
-        render_block("Consider Next", context.get("consider_next"), "A nudge on what to explore.")
+        render_block("Change", context.get("change"))
+        render_block("Consider Next", context.get("consider_next"))
         if context.get("wild_card"):
             st.markdown("### Product Recommendation")
-            with st.container(border=True):
-                st.write(context["wild_card"])
+            st.markdown(
+                f"""
+                <div style="background: rgba(255,255,255,0.08); padding:12px; border-radius:10px;">
+                    {context['wild_card']}
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
-    # ---------------------------
-    # Under the hood (debug/tech)
-    # ---------------------------
+    # Debug log
     debug = context.get("debug_log", {})
     keep_keys = [
         "classified_topic",
