@@ -47,29 +47,16 @@ if "embedding_threshold" not in st.session_state:
     st.session_state.embedding_threshold = 0.2
 if "timezone" not in st.session_state:
     st.session_state.timezone = "America/Los_Angeles"
+if "active_tab" not in st.session_state:
+    st.session_state.active_tab = "intro"  # default tab
 
 # ---------------------------
-# PAGE CONFIG + GLOBAL STYLE
+# PAGE CONFIG
 # ---------------------------
 st.set_page_config(
     page_title="Thread-ly Journal",
     layout="wide",
     initial_sidebar_state="expanded"
-)
-
-# Center + enlarge font
-st.markdown(
-    """
-    <style>
-    .block-container {
-        max-width: 900px;
-        margin: auto;
-        font-size: 1.1rem;
-        line-height: 1.6;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True
 )
 
 # ---------------------------
@@ -121,12 +108,30 @@ def dict_to_rows(d):
 # ---------------------------
 # MAIN TABS
 # ---------------------------
-tab_intro, tab_journal = st.tabs(["📘 Intro & Guide", "📝 Journal"])
+if st.session_state.active_tab == "journal":
+    tab_journal, tab_intro = st.tabs(["📝 Journal", "📘 Intro & Guide"])
+else:
+    tab_intro, tab_journal = st.tabs(["📘 Intro & Guide", "📝 Journal"])
 
 # ---------------------------
 # TAB 1: INTRO & GUIDE
 # ---------------------------
 with tab_intro:
+    # Style only for intro tab
+    st.markdown(
+        """
+        <style>
+        .block-container {
+            max-width: 900px;
+            margin: auto;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
     st.title("Welcome to Thread-ly")
 
     st.markdown(
@@ -180,11 +185,19 @@ with tab_intro:
     ]
 
     for i, example in enumerate(fitness_examples, 1):
-        if st.button(f"Add Example {i}", key=f"ex{i}"):
-            st.session_state.journal_input = example
-            log_action(st.session_state.user_id, "used_example", example)
-            st.success("Added to Journal! Go to the Journal tab to see it.")
-            st.rerun()
+        if f"ex{i}_clicked" not in st.session_state:
+            st.session_state[f"ex{i}_clicked"] = False
+
+        if not st.session_state[f"ex{i}_clicked"]:
+            if st.button(f"Add Example {i}", key=f"ex{i}"):
+                st.session_state.journal_input = example
+                st.session_state[f"ex{i}_clicked"] = True
+                st.session_state.active_tab = "journal"
+                log_action(st.session_state.user_id, "used_example", example)
+                st.success("Added to Journal! Switching you to the Journal tab...")
+                st.rerun()
+        else:
+            st.button(f"Added ✓ Example {i}", key=f"ex{i}_done", disabled=True)
 
 # ---------------------------
 # TAB 2: JOURNAL
