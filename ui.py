@@ -148,15 +148,16 @@ with left:
                 st.session_state.last_message = user_msg
                 st.rerun()
 
-    # Start Over button (better style)
+    # Start Over button (visible style for dark mode)
     st.markdown(
         """
         <style>
-        .stButton>button.start-over {
-            background-color: #e63946;
-            color: white;
-            font-weight: bold;
+        .stButton>button[kind="primary"] {
+            background-color: #d9534f !important;
+            color: white !important;
+            font-weight: 600;
             border-radius: 6px;
+            border: none;
         }
         </style>
         """,
@@ -168,21 +169,14 @@ with left:
         st.rerun()
 
 # ---------------------------
-# RIGHT: REFLECTION OVERVIEW (ENTIRE COLUMN WRAPPED)
+# RIGHT: REFLECTION OVERVIEW
 # ---------------------------
 with right:
-    st.markdown(
-        """
-        <div style="background: rgba(255,255,255,0.05); padding:24px; border-radius:12px;">
-        """,
-        unsafe_allow_html=True
-    )
-
     st.subheader("Reflection Overview")
 
     context = st.session_state.last_response or {}
 
-    # Roast (centered + quote style)
+    # Roast (centered quote)
     roast_msg = context.get("roast_message")
     if roast_msg:
         st.markdown(
@@ -204,18 +198,20 @@ with right:
     with col2:
         render_block("Change", context.get("change"))
         render_block("Consider Next", context.get("consider_next"))
+
+        # Product Recommendation with translucent band
         if context.get("wild_card"):
-            st.markdown("### Product Recommendation")
             st.markdown(
                 f"""
-                <div style="background: rgba(255,255,255,0.12); padding:12px; border-radius:10px; margin-top:8px;">
-                    {context['wild_card']}
+                <div style="background: rgba(255,255,255,0.08); padding:16px; border-radius:10px; margin-top:16px;">
+                    <h3 style="margin:0; padding-bottom:8px;">Product Recommendation</h3>
+                    <div>{context['wild_card']}</div>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
-    # Debug log
+    # Debug log (also with translucent band)
     debug = context.get("debug_log", {})
     keep_keys = [
         "classified_topic",
@@ -233,15 +229,20 @@ with right:
     cleaned_debug = {k: v for k, v in debug.items() if k in keep_keys}
 
     if cleaned_debug or debug.get("candidate_threads"):
-        st.divider()
-        with st.expander("Under the hood", expanded=False):
-            if cleaned_debug:
-                st.markdown("**Signals**")
-                st.dataframe(dict_to_rows(cleaned_debug), use_container_width=True)
+        st.markdown(
+            """
+            <div style="background: rgba(255,255,255,0.08); padding:16px; border-radius:10px; margin-top:20px;">
+            """,
+            unsafe_allow_html=True
+        )
+        st.markdown("### Under the hood")
+        if cleaned_debug:
+            st.markdown("**Signals**")
+            st.dataframe(dict_to_rows(cleaned_debug), use_container_width=True)
 
-            candidate_threads = debug.get("candidate_threads", [])
-            if candidate_threads:
-                st.markdown("**Candidate Threads Scored**")
-                st.dataframe(candidate_threads, use_container_width=True)
+        candidate_threads = debug.get("candidate_threads", [])
+        if candidate_threads:
+            st.markdown("**Candidate Threads Scored**")
+            st.dataframe(candidate_threads, use_container_width=True)
 
-    st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
