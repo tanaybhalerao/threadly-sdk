@@ -9,8 +9,8 @@ from .embedding_utils import get_embedding, search_thread_signatures
 # ---------------------------
 # Configurable thresholds (defaults)
 # ---------------------------
-NUANCE_SIMILARITY_THRESHOLD = 0.4
-THREAD_EMBEDDING_SIMILARITY_THRESHOLD = 0.30   # default embedding cutoff
+NUANCE_SIMILARITY_THRESHOLD = 0.35
+THREAD_EMBEDDING_SIMILARITY_THRESHOLD = 0.20   # default embedding cutoff
 THREAD_MAX_DAYS_OLD = 30
 SUBTOPIC_OVERLAP_MIN = 1
 EMBEDDING_GUARDRAIL_SCORE = 0.3

@@ -24,7 +24,7 @@ if "last_response" not in st.session_state:
 if "last_message" not in st.session_state:
     st.session_state.last_message = ""
 if "embedding_threshold" not in st.session_state:
-    st.session_state.embedding_threshold = 0.4  # default
+    st.session_state.embedding_threshold = 0.2  # default
 
 # ---------------------------
 # PAGE CONFIG
