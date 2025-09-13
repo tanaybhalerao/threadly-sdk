@@ -179,7 +179,6 @@ with left:
 
     # Entry form
     with st.form("journal_form"):
-        # IMPORTANT: do NOT pass a `value=` here; the widget uses session state
         st.text_area(
             "What’s on your mind today?",
             key="journal_input",
@@ -200,7 +199,7 @@ with left:
         # If the example button is clicked, prefill the textbox only
         if example_clicked and examples_left:
             next_example = starter_examples[st.session_state.starter_index]
-            st.session_state.journal_input = next_example
+            st.session_state.update({"journal_input": next_example})
             st.session_state.starter_index += 1
             log_action(st.session_state.user_id, "used_example", next_example)
             st.rerun()
@@ -209,7 +208,6 @@ with left:
         if save_clicked and st.session_state.journal_input.strip():
             user_msg = st.session_state.journal_input
 
-            # Add to local entry list immediately with local timestamp
             st.session_state.chat_history.append({
                 "role": "user",
                 "content": user_msg,
@@ -217,7 +215,6 @@ with left:
                 "thread_id": "pending"
             })
 
-            # Multi-stage wait messages during processing
             with st.empty():
                 msg_area = st.empty()
                 for stage in [
@@ -228,7 +225,6 @@ with left:
                     msg_area.info(stage)
                     time.sleep(3)
 
-            # Call backend
             try:
                 response = requests.post(BACKEND_URL, json={
                     "user_id": st.session_state.user_id,
@@ -253,7 +249,7 @@ with left:
                 st.error(f"Request failed: {e}")
 
             st.session_state.last_message = user_msg
-            st.session_state.journal_input = ""  # clear the textbox after save
+            st.session_state.journal_input = ""  # clear textbox after save
             st.rerun()
 
     # Start Over button (high contrast)
@@ -286,7 +282,6 @@ with right:
     context = st.session_state.last_response or {}
     entry_count = len(st.session_state.chat_history)
 
-    # Roast placement (centered quote)
     roast_msg = context.get("roast_message")
     if roast_msg:
         if entry_count == 3:
@@ -319,7 +314,6 @@ with right:
         render_block("Change", context.get("change"))
         render_block("Consider Next", context.get("consider_next"))
 
-        # Product Recommendation block
         if context.get("wild_card"):
             st.markdown(
                 f"""
@@ -331,7 +325,6 @@ with right:
                 unsafe_allow_html=True
             )
 
-    # Under the hood (cleaned + table)
     debug = context.get("debug_log", {})
     keep_keys = [
         "classified_topic", "emotion", "nuance", "subtopics",
