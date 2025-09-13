@@ -117,11 +117,11 @@ else:
 # TAB 1: INTRO & GUIDE
 # ---------------------------
 with tab_intro:
-    # Style only for intro tab
+    # Scoped CSS for Intro only
     st.markdown(
         """
         <style>
-        .block-container {
+        .intro-container {
             max-width: 900px;
             margin: auto;
             font-size: 1.1rem;
@@ -131,6 +131,8 @@ with tab_intro:
         """,
         unsafe_allow_html=True
     )
+
+    st.markdown('<div class="intro-container">', unsafe_allow_html=True)
 
     st.title("Welcome to Thread-ly")
 
@@ -198,6 +200,8 @@ with tab_intro:
                 st.rerun()
         else:
             st.button(f"Added ✓ Example {i}", key=f"ex{i}_done", disabled=True)
+
+    st.markdown('</div>', unsafe_allow_html=True)
 
 # ---------------------------
 # TAB 2: JOURNAL
