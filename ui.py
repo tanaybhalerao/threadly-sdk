@@ -58,11 +58,11 @@ if "debug_mode" not in st.session_state:
 # STATIC ROASTS (5 only)
 # ---------------------------
 ROASTS = [
-    "Yep, it’s slow. But hey messages takes time to weave.",
+    "Yep, it’s slow. But hey — messages takes time to weave.",
     "UI feels clunky? Fair. But watch how themes and changes line up.",
     "Sometimes it misses — continuity is messy, just like us.",
     "You only get 5 entries… because Thread-ly is still on training wheels.",
-    "Here’s a product suggestion based on your recent entries."
+    "Here’s a product suggestion to fit your recent themes."
 ]
 
 # ---------------------------
@@ -227,10 +227,12 @@ with left:
                 for stage in [
                     "Checking if this connects to your past entries...",
                     "Looking up similar themes...",
+                    "Tracing continuity signals...",
+                    "Summarizing your reflection...",
                     "Weaving it into your memory threads..."
                 ]:
                     msg_area.info(stage)
-                    time.sleep(3)
+                    time.sleep(2)
 
             try:
                 response = requests.post(BACKEND_URL, json={
