@@ -9,7 +9,7 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 @retry(wait=wait_random_exponential(min=1, max=5), stop=stop_after_attempt(3))
 def call_gpt_summary(prompt):
     response = client.chat.completions.create(
-        model="gpt-4-turbo",
+        model="gpt-4o",
         messages=[{"role": "system", "content": prompt}],
         temperature=0.5,  # slightly higher for richer detail
     )
