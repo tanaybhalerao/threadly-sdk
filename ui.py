@@ -30,7 +30,7 @@ def log_action(user_id, action, content="", meta=None):
                 str(meta) if meta else ""
             ])
     except Exception:
-        pass
+        pass  # logging must never block UX
 
 # ---------------------------
 # SESSION STATE INIT
@@ -49,6 +49,8 @@ if "timezone" not in st.session_state:
     st.session_state.timezone = "America/Los_Angeles"
 if "starter_index" not in st.session_state:
     st.session_state.starter_index = 0
+if "journal_input" not in st.session_state:
+    st.session_state.journal_input = ""  # IMPORTANT: widget state lives here
 
 # ---------------------------
 # PAGE CONFIG
@@ -68,14 +70,33 @@ with st.sidebar:
     st.markdown(f"**User ID:** `{st.session_state.user_id}`")
     st.markdown(f"**Reflections used:** {len(st.session_state.chat_history)}/5")
 
+    # Scoped sidebar styling for nav steps (left aligned, consistent spacing)
+    st.markdown(
+        """
+        <style>
+        section[data-testid="stSidebar"] ol.nav-steps { 
+            margin: 0; 
+            padding-left: 1.2rem; 
+        }
+        section[data-testid="stSidebar"] ol.nav-steps li { 
+            margin: 0 0 .35rem 0; 
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
     st.subheader("How to Navigate")
     st.markdown(
         """
-        1. Add your own reflection or click *Add Example Reflection*  
-        2. Hit **Save Reflection**  
-        3. See the overview on the right  
-        4. Use **Start Over** anytime to reset  
-        """.strip()
+        <ol class="nav-steps">
+          <li>Add your own text or click <em>Add Example Reflection</em></li>
+          <li>Click <strong>Save Reflection</strong></li>
+          <li>See patterns and suggestions on the right</li>
+          <li>Use <strong>Start Over</strong> anytime to reset</li>
+        </ol>
+        """,
+        unsafe_allow_html=True
     )
 
     st.subheader("Settings")
@@ -146,7 +167,7 @@ with left:
     st.divider()
     st.subheader("Add Reflection")
 
-    # Starter Reflections (just fills text box)
+    # Health & Fitness starter examples (cycled by one button)
     starter_examples = [
         "I’m trying to stick with running three times a week, but it’s hard to stay consistent.",
         "Yesterday’s run was tough, but at least I got out the door.",
@@ -154,75 +175,88 @@ with left:
         "I wonder if getting a running watch would motivate me like a new gadget does.",
         "I spent all evening comparing laptops instead of stretching after my run."
     ]
+    examples_left = st.session_state.starter_index < len(starter_examples)
 
-    if st.session_state.starter_index < len(starter_examples):
-        if st.button("Add Example Reflection"):
-            st.session_state.journal_input = starter_examples[st.session_state.starter_index]
-            st.session_state.starter_index += 1
-            log_action(st.session_state.user_id, "used_example", st.session_state.journal_input)
-            st.rerun()
-    else:
-        st.button("No more starter reflections", disabled=True)
+    # Entry form
+    with st.form("journal_form"):
+        # IMPORTANT: do NOT pass a `value=` here; the widget uses session state
+        st.text_area(
+            "What’s on your mind today?",
+            key="journal_input",
+            height=120
+        )
 
-    # Manual Reflection Entry
-    if len(st.session_state.chat_history) >= 5:
-        st.warning("You've reached the 5-entry demo limit. Click 'Start Over' to reset.")
-    else:
-        with st.form("journal_form"):
-            user_msg = st.text_area(
-                "What’s on your mind today?",
-                key="journal_input",
-                height=120,
-                value=st.session_state.get("journal_input", "")
+        # Buttons side-by-side
+        c1, c2 = st.columns([1, 1])
+        with c1:
+            save_clicked = st.form_submit_button("Save Reflection", use_container_width=True)
+        with c2:
+            example_clicked = st.form_submit_button(
+                "Add Example Reflection",
+                disabled=not examples_left,
+                use_container_width=True
             )
-            submit = st.form_submit_button("Save Reflection")
-            if submit and user_msg.strip():
-                st.session_state.chat_history.append({
-                    "role": "user",
-                    "content": user_msg,
-                    "timestamp_local": now_local_str(),
-                    "thread_id": "pending"
+
+        # If the example button is clicked, prefill the textbox only
+        if example_clicked and examples_left:
+            next_example = starter_examples[st.session_state.starter_index]
+            st.session_state.journal_input = next_example
+            st.session_state.starter_index += 1
+            log_action(st.session_state.user_id, "used_example", next_example)
+            st.rerun()
+
+        # If Save is clicked, commit the current text to entries and call backend
+        if save_clicked and st.session_state.journal_input.strip():
+            user_msg = st.session_state.journal_input
+
+            # Add to local entry list immediately with local timestamp
+            st.session_state.chat_history.append({
+                "role": "user",
+                "content": user_msg,
+                "timestamp_local": now_local_str(),
+                "thread_id": "pending"
+            })
+
+            # Multi-stage wait messages during processing
+            with st.empty():
+                msg_area = st.empty()
+                for stage in [
+                    "Checking if this connects to your past entries...",
+                    "Looking up similar themes...",
+                    "Weaving it into your memory threads..."
+                ]:
+                    msg_area.info(stage)
+                    time.sleep(3)
+
+            # Call backend
+            try:
+                response = requests.post(BACKEND_URL, json={
+                    "user_id": st.session_state.user_id,
+                    "message": user_msg,
+                    "tags": ["demo"],
+                    "debug_mode": True,
+                    "demo_mode": True,
+                    "goal_label": "",
+                    "importance_score": 0.5,
+                    "embedding_threshold": st.session_state.embedding_threshold
                 })
+                if response.status_code == 200:
+                    data = response.json()
+                    context = data.get("context", {})
+                    thread_id = context.get("thread_id", "unknown")
+                    st.session_state.chat_history[-1]["thread_id"] = thread_id
+                    st.session_state.last_response = context
+                    log_action(st.session_state.user_id, "add_reflection", user_msg, context)
+                else:
+                    st.error("Backend error. Please try again later.")
+            except Exception as e:
+                st.error(f"Request failed: {e}")
 
-                with st.empty():
-                    msg_area = st.empty()
-                    stages = [
-                        "Checking if this connects to your past entries...",
-                        "Looking up similar themes...",
-                        "Weaving it into your memory threads..."
-                    ]
-                    for stage in stages:
-                        msg_area.info(stage)
-                        time.sleep(3)
+            st.session_state.last_message = user_msg
+            st.session_state.journal_input = ""  # clear the textbox after save
+            st.rerun()
 
-                try:
-                    response = requests.post(BACKEND_URL, json={
-                        "user_id": st.session_state.user_id,
-                        "message": user_msg,
-                        "tags": ["demo"],
-                        "debug_mode": True,
-                        "demo_mode": True,
-                        "goal_label": "",
-                        "importance_score": 0.5,
-                        "embedding_threshold": st.session_state.embedding_threshold
-                    })
-                    if response.status_code == 200:
-                        data = response.json()
-                        context = data.get("context", {})
-                        thread_id = context.get("thread_id", "unknown")
-                        st.session_state.chat_history[-1]["thread_id"] = thread_id
-                        st.session_state.last_response = context
-                        log_action(st.session_state.user_id, "add_reflection", user_msg, context)
-                    else:
-                        st.error("Backend error. Please try again later.")
-                except Exception as e:
-                    st.error(f"Request failed: {e}")
-
-                st.session_state.last_message = user_msg
-                st.session_state.journal_input = ""  # clear textbox
-                st.rerun()
-
-    # Start Over button
+    # Start Over button (high contrast)
     st.markdown(
         """
         <style>
@@ -252,6 +286,7 @@ with right:
     context = st.session_state.last_response or {}
     entry_count = len(st.session_state.chat_history)
 
+    # Roast placement (centered quote)
     roast_msg = context.get("roast_message")
     if roast_msg:
         if entry_count == 3:
@@ -284,6 +319,7 @@ with right:
         render_block("Change", context.get("change"))
         render_block("Consider Next", context.get("consider_next"))
 
+        # Product Recommendation block
         if context.get("wild_card"):
             st.markdown(
                 f"""
@@ -295,6 +331,7 @@ with right:
                 unsafe_allow_html=True
             )
 
+    # Under the hood (cleaned + table)
     debug = context.get("debug_log", {})
     keep_keys = [
         "classified_topic", "emotion", "nuance", "subtopics",
