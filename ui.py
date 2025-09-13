@@ -71,9 +71,10 @@ with st.sidebar:
     st.subheader("How to Navigate")
     st.markdown(
         """
-        1. Add reflections (up to 5).  
-        2. Watch patterns emerge on the right.  
-        3. Hit **Start Over** to reset.  
+        1. Add your own reflection or click *Add Example Reflection*  
+        2. Hit **Save Reflection**  
+        3. See the overview on the right  
+        4. Use **Start Over** anytime to reset  
         """.strip()
     )
 
@@ -145,7 +146,7 @@ with left:
     st.divider()
     st.subheader("Add Reflection")
 
-    # Starter Reflections
+    # Starter Reflections (just fills text box)
     starter_examples = [
         "I’m trying to stick with running three times a week, but it’s hard to stay consistent.",
         "Yesterday’s run was tough, but at least I got out the door.",
@@ -155,17 +156,10 @@ with left:
     ]
 
     if st.session_state.starter_index < len(starter_examples):
-        if st.button("Add Starter Reflection"):
-            example = starter_examples[st.session_state.starter_index]
-            st.session_state.journal_input = example
+        if st.button("Add Example Reflection"):
+            st.session_state.journal_input = starter_examples[st.session_state.starter_index]
             st.session_state.starter_index += 1
-            st.session_state.chat_history.append({
-                "role": "user",
-                "content": example,
-                "timestamp_local": now_local_str(),
-                "thread_id": "pending"
-            })
-            log_action(st.session_state.user_id, "used_example", example)
+            log_action(st.session_state.user_id, "used_example", st.session_state.journal_input)
             st.rerun()
     else:
         st.button("No more starter reflections", disabled=True)
@@ -175,7 +169,12 @@ with left:
         st.warning("You've reached the 5-entry demo limit. Click 'Start Over' to reset.")
     else:
         with st.form("journal_form"):
-            user_msg = st.text_area("What’s on your mind today?", key="journal_input", height=120)
+            user_msg = st.text_area(
+                "What’s on your mind today?",
+                key="journal_input",
+                height=120,
+                value=st.session_state.get("journal_input", "")
+            )
             submit = st.form_submit_button("Save Reflection")
             if submit and user_msg.strip():
                 st.session_state.chat_history.append({
@@ -220,6 +219,7 @@ with left:
                     st.error(f"Request failed: {e}")
 
                 st.session_state.last_message = user_msg
+                st.session_state.journal_input = ""  # clear textbox
                 st.rerun()
 
     # Start Over button
@@ -276,19 +276,19 @@ with right:
     col1, col2 = st.columns(2)
 
     with col1:
-        render_block("Core Idea", context.get("theme"))
-        render_block("Summary", context.get("reflection_summary"))
-        render_block("Energy", context.get("momentum"))
+        render_block("Theme", context.get("theme"))
+        render_block("Reflection", context.get("reflection_summary"))
+        render_block("Momentum", context.get("momentum"))
 
     with col2:
-        render_block("Shift", context.get("change"))
-        render_block("Next Step", context.get("consider_next"))
+        render_block("Change", context.get("change"))
+        render_block("Consider Next", context.get("consider_next"))
 
         if context.get("wild_card"):
             st.markdown(
                 f"""
                 <div style="background: rgba(255,255,255,0.08); padding:16px; border-radius:10px; margin-top:16px;">
-                    <h3 style="margin:0; padding-bottom:8px;">Inspiration</h3>
+                    <h3 style="margin:0; padding-bottom:8px;">Product Recommendation</h3>
                     <div>{context['wild_card']}</div>
                 </div>
                 """,
