@@ -36,7 +36,7 @@ Respond only with a string. No JSON. No extra explanation.
 """
 
     response = client.chat.completions.create(
-        model="gpt-4o",
+        model="gpt-4o-mini",
         messages=[{"role": "system", "content": prompt}],
         temperature=0.5,
     )
