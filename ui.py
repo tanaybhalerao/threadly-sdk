@@ -30,7 +30,7 @@ def log_action(user_id, action, content="", meta=None):
                 str(meta) if meta else ""
             ])
     except Exception:
-        pass  # logging must never block UX
+        pass
 
 # ---------------------------
 # SESSION STATE INIT
@@ -50,7 +50,20 @@ if "timezone" not in st.session_state:
 if "starter_index" not in st.session_state:
     st.session_state.starter_index = 0
 if "prefill_text" not in st.session_state:
-    st.session_state.prefill_text = ""  # NEW: controls text area content
+    st.session_state.prefill_text = ""
+if "debug_mode" not in st.session_state:
+    st.session_state.debug_mode = False  # Hide debug by default
+
+# ---------------------------
+# STATIC ROASTS (5 only)
+# ---------------------------
+ROASTS = [
+    "Yep, it’s slow. But hey messages takes time to weave.",
+    "UI feels clunky? Fair. But watch how themes and changes line up.",
+    "Sometimes it misses — continuity is messy, just like us.",
+    "You only get 5 entries… because Thread-ly is still on training wheels.",
+    "Here’s a product suggestion based on your recent entries."
+]
 
 # ---------------------------
 # PAGE CONFIG
@@ -166,7 +179,6 @@ with left:
     st.divider()
     st.subheader("Add Reflection")
 
-    # Starter examples
     starter_examples = [
         "I’m trying to stick with running three times a week, but it’s hard to stay consistent.",
         "Yesterday’s run was tough, but at least I got out the door.",
@@ -176,7 +188,6 @@ with left:
     ]
     examples_left = st.session_state.starter_index < len(starter_examples)
 
-    # Entry form
     with st.form("journal_form"):
         st.text_area(
             "What’s on your mind today?",
@@ -195,7 +206,6 @@ with left:
                 use_container_width=True
             )
 
-        # Example prefill
         if example_clicked and examples_left:
             next_example = starter_examples[st.session_state.starter_index]
             st.session_state.prefill_text = next_example
@@ -203,10 +213,8 @@ with left:
             log_action(st.session_state.user_id, "used_example", next_example)
             st.rerun()
 
-        # Save reflection
         if save_clicked and st.session_state.journal_input.strip():
             user_msg = st.session_state.journal_input
-
             st.session_state.chat_history.append({
                 "role": "user",
                 "content": user_msg,
@@ -248,10 +256,9 @@ with left:
                 st.error(f"Request failed: {e}")
 
             st.session_state.last_message = user_msg
-            st.session_state.prefill_text = ""  # clear textbox for next entry
+            st.session_state.prefill_text = ""
             st.rerun()
 
-    # Start Over button
     st.markdown(
         """
         <style>
@@ -281,26 +288,16 @@ with right:
     context = st.session_state.last_response or {}
     entry_count = len(st.session_state.chat_history)
 
-    roast_msg = context.get("roast_message")
-    if roast_msg:
-        if entry_count == 3:
-            st.markdown(
-                """
-                <div style="text-align:center; font-size:20px; font-style:italic; margin: 0 0 24px 0; color:#ffcc00;">
-                    “Looks like you’re shifting gears — noticing a new context?”
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-        else:
-            st.markdown(
-                f"""
-                <div style="text-align:center; font-size:20px; font-style:italic; margin: 0 0 24px 0;">
-                    “{roast_msg}”
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+    if 1 <= entry_count <= 5:
+        roast_msg = ROASTS[entry_count - 1]
+        st.markdown(
+            f"""
+            <div style="text-align:center; font-size:20px; font-style:italic; margin: 0 0 24px 0; color:#ffcc00;">
+                “{roast_msg}”
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
     col1, col2 = st.columns(2)
 
@@ -324,30 +321,34 @@ with right:
                 unsafe_allow_html=True
             )
 
-    debug = context.get("debug_log", {})
-    keep_keys = [
-        "classified_topic", "emotion", "nuance", "subtopics",
-        "selected_thread_score", "thread_continuation_reason",
-        "thread_memory_hits", "user_entry_count", "countdown_remaining",
-        "embedding_threshold_used", "best_embedding_similarity"
-    ]
-    cleaned_debug = {k: v for k, v in debug.items() if k in keep_keys}
+    # ---------------------------
+    # Under the hood (hidden unless debug_mode is True)
+    # ---------------------------
+    if st.session_state.debug_mode:
+        debug = context.get("debug_log", {})
+        keep_keys = [
+            "classified_topic", "emotion", "nuance", "subtopics",
+            "selected_thread_score", "thread_continuation_reason",
+            "thread_memory_hits", "user_entry_count", "countdown_remaining",
+            "embedding_threshold_used", "best_embedding_similarity"
+        ]
+        cleaned_debug = {k: v for k, v in debug.items() if k in keep_keys}
 
-    if cleaned_debug or debug.get("candidate_threads"):
-        st.markdown(
-            """
-            <div style="background: rgba(255,255,255,0.08); padding:16px; border-radius:10px; margin-top:20px;">
-            """,
-            unsafe_allow_html=True
-        )
-        st.markdown("### Under the hood")
-        if cleaned_debug:
-            st.markdown("**Signals**")
-            st.dataframe(dict_to_rows(cleaned_debug), use_container_width=True)
+        if cleaned_debug or debug.get("candidate_threads"):
+            st.markdown(
+                """
+                <div style="background: rgba(255,255,255,0.08); padding:16px; border-radius:10px; margin-top:20px;">
+                """,
+                unsafe_allow_html=True
+            )
+            st.markdown("### Under the hood")
+            if cleaned_debug:
+                st.markdown("**Signals**")
+                st.dataframe(dict_to_rows(cleaned_debug), use_container_width=True)
 
-        candidate_threads = debug.get("candidate_threads", [])
-        if candidate_threads:
-            st.markdown("**Candidate Threads Scored**")
-            st.dataframe(candidate_threads, use_container_width=True)
+            candidate_threads = debug.get("candidate_threads", [])
+            if candidate_threads:
+                st.markdown("**Candidate Threads Scored**")
+                st.dataframe(candidate_threads, use_container_width=True)
 
-        st.markdown("</div>", unsafe_allow_html=True)
+            st.markdown("</div>", unsafe_allow_html=True)
