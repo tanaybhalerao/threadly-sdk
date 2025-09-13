@@ -49,8 +49,8 @@ if "timezone" not in st.session_state:
     st.session_state.timezone = "America/Los_Angeles"
 if "starter_index" not in st.session_state:
     st.session_state.starter_index = 0
-if "journal_input" not in st.session_state:
-    st.session_state.journal_input = ""  # IMPORTANT: widget state lives here
+if "prefill_text" not in st.session_state:
+    st.session_state.prefill_text = ""  # NEW: controls text area content
 
 # ---------------------------
 # PAGE CONFIG
@@ -70,7 +70,6 @@ with st.sidebar:
     st.markdown(f"**User ID:** `{st.session_state.user_id}`")
     st.markdown(f"**Reflections used:** {len(st.session_state.chat_history)}/5")
 
-    # Scoped sidebar styling for nav steps (left aligned, consistent spacing)
     st.markdown(
         """
         <style>
@@ -167,7 +166,7 @@ with left:
     st.divider()
     st.subheader("Add Reflection")
 
-    # Health & Fitness starter examples (cycled by one button)
+    # Starter examples
     starter_examples = [
         "I’m trying to stick with running three times a week, but it’s hard to stay consistent.",
         "Yesterday’s run was tough, but at least I got out the door.",
@@ -182,10 +181,10 @@ with left:
         st.text_area(
             "What’s on your mind today?",
             key="journal_input",
-            height=120
+            height=120,
+            value=st.session_state.prefill_text
         )
 
-        # Buttons side-by-side
         c1, c2 = st.columns([1, 1])
         with c1:
             save_clicked = st.form_submit_button("Save Reflection", use_container_width=True)
@@ -196,15 +195,15 @@ with left:
                 use_container_width=True
             )
 
-        # If the example button is clicked, prefill the textbox only
+        # Example prefill
         if example_clicked and examples_left:
             next_example = starter_examples[st.session_state.starter_index]
-            st.session_state.update({"journal_input": next_example})
+            st.session_state.prefill_text = next_example
             st.session_state.starter_index += 1
             log_action(st.session_state.user_id, "used_example", next_example)
             st.rerun()
 
-        # If Save is clicked, commit the current text to entries and call backend
+        # Save reflection
         if save_clicked and st.session_state.journal_input.strip():
             user_msg = st.session_state.journal_input
 
@@ -249,10 +248,10 @@ with left:
                 st.error(f"Request failed: {e}")
 
             st.session_state.last_message = user_msg
-            st.session_state.journal_input = ""  # clear textbox after save
+            st.session_state.prefill_text = ""  # clear textbox for next entry
             st.rerun()
 
-    # Start Over button (high contrast)
+    # Start Over button
     st.markdown(
         """
         <style>
